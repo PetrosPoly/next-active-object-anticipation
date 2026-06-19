@@ -4,6 +4,12 @@
 
 > Master's thesis project. Built on top of [Project Aria Tools](https://github.com/facebookresearch/projectaria_tools) and the [Aria Digital Twin (ADT)](https://www.projectaria.com/datasets/adt/) dataset (Meta), the original contribution is the full object-anticipation pipeline described below.
 
+<p align="center">
+  <img src="docs/demo.gif" width="340" alt="Egocentric gaze and object tracking demo"/>
+  <br/>
+  <em>Egocentric view from the Aria glasses: 2D object detections (yellow), the eye-gaze point (red), and the object currently in focus (green) — the signals the pipeline turns into a next-object prediction.</em>
+</p>
+
 ---
 
 ## Motivation
