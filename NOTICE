@@ -1,0 +1,18 @@
+Next Active Object Anticipation
+Copyright (c) 2024-2025 Petros Polydorou
+
+This project was developed as a Master's thesis and builds upon:
+
+  Project Aria Tools (projectaria_tools)
+  Copyright (c) Meta Platforms, Inc. and affiliates.
+  Licensed under the Apache License, Version 2.0.
+  https://github.com/facebookresearch/projectaria_tools
+
+  Aria Digital Twin (ADT) dataset
+  Copyright (c) Meta Platforms, Inc. and affiliates.
+  https://www.projectaria.com/datasets/adt/
+
+Portions of the source files in this repository retain the original
+Apache-2.0 license header from Project Aria Tools. The object-anticipation
+pipeline (perception heuristics, LLM prediction layer, ground-truth
+generation, and evaluation) is the original contribution of the author.

@@ -1,0 +1,35 @@
+# Default configuration for the Next Active Object Anticipation pipeline.
+#
+# Paths can also be overridden via environment variables:
+#   PROJECT_ROOT   -> root of the source tree (defaults to the src/ directory)
+#   ADT_DATA_PATH  -> folder containing the downloaded ADT sequences
+#
+# These parameter values mirror the defaults used in the thesis experiments.
+
+paths:
+  # Folder where ADT sequences live (each subfolder = one sequence with video.vrs).
+  adt_data_path: data/adt
+
+# --- Perception / activation thresholds ---
+activation:
+  time_threshold: 2          # seconds before interaction to activate the LLM
+  avg_dot_high: 0.7          # keep objects with average gaze dot product above this
+  avg_dot_low: 0.2           # ...or above this if they are very close
+  avg_distance_high: 3.0     # metres: relaxed proximity for high-focus objects
+  avg_distance_low: 1.0      # metres: strict proximity for low-focus objects
+  high_dot_threshold: 0.8    # dot value counted as "looking at"
+  distance_threshold: 2.0    # metres counted as "near"
+  high_dot_counters_threshold: 45   # frames of high gaze required to activate
+  distance_counters_threshold: 60   # frames of proximity required to activate
+  window_time: 3.0           # seconds: sliding-window length
+
+# --- LLM re-activation control ---
+reactivation:
+  minimum_time_deactivated: 2.0   # seconds: do not re-query before this
+  maximum_time_deactivated: 5.0   # seconds: force a re-query after this
+  user_relative_movement: 2.0     # metres of user movement that triggers re-query
+  object_percentage_overlap: 0.7  # overlap of surrounding objects to count as same area
+
+# --- LLM backend ---
+llm:
+  model: gpt-4o-mini
