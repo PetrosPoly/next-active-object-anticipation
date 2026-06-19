@@ -1,0 +1,42 @@
+prompt_instruction:
+As previously outlined, the user navigates the environment with the intent to interact with specific objects to accomplish a task. We assume that, before interacting with an object, the user often observes that object or nearby ones. Based on this behavior, we compile a list titled "focus_consistency_from_user_to_objects_measured_in_counts," which tracks the objects the user focuses on intensely and consistently. The counts reflect how frequently the user observes these objects within a 3-second time window, with each second divided into 30 counts. For instance, if an object accumulates 45 counts over 3 seconds (equivalent to 90 total counts), it indicates that the object was in the user’s focus for 1.5 seconds within the last 3 seconds. Higher counts suggest the object stayed in the user’s focus for a longer portion of the time window.
+Additionally, as the user moves through the space, their proximity to various objects is also tracked. While proximity alone does not necessarily imply interaction (the user could simply be passing by), monitoring the time spent near an object can provide insights into possible future interactions. This duration/consistency is also recorded using counts, similar to focus consistency. The list titled "proximity_consistency_from_user_to_objects_measured_in_counts" records the amount of time the user remains close to objects within the same 3-second time window. Higher counts indicate prolonged proximity. For example, if an object has 30 counts over 3 seconds (90 counts total), it means the user remained within a predefined proximity threshold (e.g., 2 meters) from the object for 1 second.
+To further improve interaction prediction, it is critical to estimate the time the user needs to approach an object. To this end, the "time_to_approach_objects_measured_in_seconds" list provides the estimated time for the user to approach each object, based on the user’s current velocity vector and the distance vectors between the user and the objects.
+Lastly, a "past_predictions_with_timestamps" list is available, containing all past predictions. This list is intended to enhance future predictions by identifying patterns in the user’s behavior and gaining a deeper understanding of their overarching goal. If the user is pursuing a specific goal, they are likely to interact with certain objects in a meaningful, sequential manner.
+
+---
+prompt_reasoning:
+The object selection process should be structured based on the following criteria
+  - Objects that satisfy all thresholds (focus, distance, time) are deemed highly probable.
+  - Objects meeting the distance and time thresholds but showing partial focus (dot counts), or objects meeting the focus and time thresholds with partial distance counts, are the next most likely.
+  - Objects that do not meet the time threshold but satisfy both the focus (dot counts) and distance thresholds (since proximity typically suggests a reduced time to approach) are considered probable.
+  - Objects that fail to meet the time threshold but satisfy either the focus (dot counts) or distance thresholds (though not both) are considered less likely but still possible.
+
+---
+prompt_predict:
+Based on the provided instructions, predict the three objects the user is most likely to interact with, listed in order of highest probability. Use the actual names of the objects and assign probabilities for each, ensuring that the total sum of the probabilities equals 1. Additionally, explain the reasoning behind each prediction.
+To ensure clear reasoning, let’s think step by step.
+The output should be formatted in plain YAML without any additional formatting symbols such as triple quotes (""") and colons (:) to maintain valid YAML syntax. The YAML should include the following sections:
+
+most_likely_objects_to_interact_with:
+    - object: Object1
+      probability: 0.4 
+    - object: Object2
+      probability: 0.35
+    - object: Object3
+      probability: 0.25
+
+rationale:
+    - object: Object1
+      reason: Explanation for Object1
+    - object: Object2
+      reason: Explanation for Object2
+    - object: Object3
+      reason: Explanation for Object3
+
+predicted_interaction_objects:
+    - Object1
+    - Object2
+    - Object3
+
+goal_of_the_user: Based on the current predictions and past ones from the previous_predictions list, it is inferred that the user's goal is...(continue your reply without adding any special characters like quotes or triple quotes or colons)

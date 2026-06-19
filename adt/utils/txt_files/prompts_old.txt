@@ -1,0 +1,39 @@
+prompt_constant:
+The user navigates the space with the intention of interacting with specific objects to accomplish a task. We make the assumption that, before interacting with an object, users tend to look at that object or a group of nearby ones. Based on this behavior, a list titled "high_focus_objects_measured_in_counts" has been compiled. This list includes objects with counts representing the number of times the user observed them intensively within a time window of a certain amount of seconds (e.g. 3 seconds). Each second consists of 30 counts. For instance, within a 3-second time window (90 counts), an object with a count of 45 indicates it was observed intensely for 45 counts (or equivalently 1.5 seconds the last 3 seconds). Essentially, objects with higher counts were in the user's focus for a larger portion of the time window. A higher count suggests more attention from the user, indicating a possible intention to interact with these objects, even if they are not physically close.
+
+As the user moves through the space, they may also come close to various objects. Proximity alone doesn't necessarily indicate an interaction, as the user might just be passing by. However, tracking the duration the user stays near these objects can hint at potential future interactions. The list titled "nearby_objects_measured_in_counts" records the duration the user remains close to objects measured in counts, similar to focus intensity, within a specified time window. The values in this list represents the number of counts, with a higher count indicating a longer time the user is near an object within a time window. For example, if the time window is 3 seconds (equivalent to 90 counts), and an object has a count of 30, it means the distance from the user to that object was within a certain threshold (for instance, 2 meters) for 1 second.
+
+Identifying objects with higher counts in this list suggests a greater likelihood of interaction, even if the object has fewer counts in the "high_focus_objects_measured_in_counts" list. 
+
+Additionally, there is a list called 'quick_access_objects' which identifies objects the user can approach within a certain time threshold, based on velocity and distance vectors. The objects in this list are very close to the user and represent a subset of the "nearby_objects_measured_in_counts" list.
+
+Finally, a list of previous predictions "previous_predictions" is provided to enhance the accuracy of future predictions and to better understand the user's overall goal.
+
+---
+prompt_change:
+Based on the provided instructions, predict the three objects the user is most likely to interact with, listed in order of highest likelihood. Use the actual names of the objects from the log and include the probability of interaction for each object. Note the sum of the 3 probabilities should be 1 according to the definition of it. Additionally, explain the rationale behind each choice. Finally, the output should be formatted in YAML format, as the following example:
+
+The output should be plain YAML without additional formatting characters like triple quotes. Here is an example format:
+
+most_likely_objects_to_interact_with:
+    - object: Object1
+      probability: 0.4
+    - object: Object2
+      probability: 0.35
+    - object: Object3
+      probability: 0.25
+
+rationale:
+    - object: Object1
+      reason: "Reason for Object1."
+    - object: Object2
+      reason: "Reason for Object2."
+    - object: Object3
+      reason: "Reason for Object3."
+
+predicted_interaction_objects:
+    - Object1
+    - Object2
+    - Object3
+
+goal_of_the_user: Based on current predictions and the past ones from the list (previous_predictions) I assume that the goal of the user is... (continue your reply without adding any special characters like quotes or trple quotes)

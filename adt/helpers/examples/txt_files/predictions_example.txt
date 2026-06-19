@@ -1,0 +1,26 @@
+LLM_Predictions and corresping gt:
+4.999: ['Mango_A', 'ChoppingBoard', 'WoodenBowl']  ----------------------> 6.432: 'ChoppingBoard'
+11.831: ['BlackCeramicMug', 'Jam_Anon', 'MuffinPan'], -------------------> 'no actual interaction'
+18.73: ['KitchenKnife', 'WoodenSpoon', 'AirPurifier_1'], ----------------> 19.73: 'KitchenKnife', 20.33: 'WoodenSpoon', 
+24.163: ['BlackCeramicMug', 'MuffinPan', 'ChoppingBoard'], -------------->  'no actual interaction'
+31.362: ['Pestel', 'KitchenKnife', 'ChoppingBoard'], --------------------> 34.861: 'WoodenFork',
+48.359: ['TvRemote_1', 'DvdRemote_1', 'BirdHouseToy'], ------------------> 48.959: 'Donut_B', 51.458: 'Cereal_Anon', 
+61.657: ['Flask', 'Tomato_A', 'WhiteVase'], ----------------------------->  'no actual interaction'
+71.322: ['WoodenToothbrushHolder', 'CandlePattern03_1', 'DinoToy'], -----> 71.955: 'WoodenToothbrushHolder', 73.422: 'Cracker_Anon', 
+78.154: ['BlackCeramicMug', 'CoffeeCanisterLarge', 'ChoppingBoard'], ----> 82.953: 'BlackCeramicMug'
+83.853: ['KitchenKnife', 'ChoppingBoard', 'BlackCeramicMug']------------->  'no actual interaction'
+
+Ground_truth_objects_the_user_moved:
+6.432: 'ChoppingBoard', 
+7.965: 'WhiteChair', 
+9.532: 'BlackKitchenChair', 
+19.73: 'KitchenKnife', 
+20.33: 'WoodenSpoon', 
+34.861: 'WoodenFork', 
+48.959: 'Donut_B', 
+51.458: 'Cereal_Anon', 
+71.089: 'DinoToy', 
+71.955: 'WoodenToothbrushHolder', 
+73.422: 'Cracker_Anon', 
+74.221: 'DinoToy', 
+82.953: 'BlackCeramicMug'
