@@ -20,7 +20,7 @@ import json
 client = OpenAI(api_key=os.environ['OPENAI_API_KEY'])
 
 # Project path
-project_path = "Documents/projectaria_sandbox/projectaria_tools/projects/AriaDigitalTwinDatasetTools/object_anticipation/adt/"
+project_path = os.environ.get("PROJECT_ROOT", os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 txt_folders = os.path.join(project_path, 'utils', 'txt_files')
 
 # Prompt filename

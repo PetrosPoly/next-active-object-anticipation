@@ -14,7 +14,7 @@ dict7 --> goals_dict
 def write_to_excel(dict1, dict2, dict3, dict4, dict5, dict6, dict7, dataset_name, parameters_folder_name, current_time_s):
     
     # Define paths
-    project_path = "Documents/projectaria_sandbox/projectaria_tools/projects/AriaDigitalTwinDatasetTools/object_anticipation/adt/"
+    project_path = os.environ.get("PROJECT_ROOT", os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     excel_folder = os.path.join(project_path, 'utils', 'excel', dataset_name, parameters_folder_name)
     os.makedirs(excel_folder, exist_ok=True)
     

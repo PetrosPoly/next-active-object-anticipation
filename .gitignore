@@ -13,9 +13,12 @@ datasets/
 logs/
 src/logs/
 **/predictions/
-utils/json/
-utils/txt_files/
+**/utils/json/
 *.xlsx
+# Runtime logs/outputs written into txt_files (but KEEP the prompt templates)
+**/txt_files/interaction_log.*
+**/txt_files/predictions.txt
+**/txt_files/dataset_paths.txt
 
 # ---- Python ----
 __pycache__/

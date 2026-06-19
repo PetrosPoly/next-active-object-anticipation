@@ -1,6 +1,8 @@
 # ---- Core dependencies ----
 # Egocentric data access (Project Aria / Aria Digital Twin dataset)
-projectaria-tools>=1.5.0
+# Pinned to the version the thesis was developed/tested against; newer Meta
+# releases may change the ADT API (e.g. AriaDigitalTwinDataProvider, gaze reprojection).
+projectaria-tools==1.5.8
 
 # Numerics & data handling
 numpy>=1.24
