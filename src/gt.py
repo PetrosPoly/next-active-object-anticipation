@@ -81,15 +81,16 @@ def main():
     
     # Project path
     project_path = os.environ.get("PROJECT_ROOT", os.path.dirname(os.path.abspath(__file__)))
-    sequence_path = args.sequence_path             
-    
-    # Dataset path
-    datasets_path = 'Documents/projectaria_tools_adt_data/'
-    dataset_folder = os.path.join(datasets_path, sequence_path)
-    os.makedirs(dataset_folder, exist_ok=True)                      
-    
-    # Ground truth data path
-    gt_folder = os.path.join(project_path,'data', 'gt', sequence_path)
+    sequence_path = args.sequence_path
+
+    # Dataset folder: accept either a full path to the sequence or a name under
+    # ADT_DATA_PATH (env override; default 'data/adt').
+    datasets_path = os.environ.get("ADT_DATA_PATH", os.path.join(project_path, "data", "adt"))
+    dataset_folder = sequence_path if os.path.isdir(sequence_path) else os.path.join(datasets_path, sequence_path)
+
+    # Ground truth output folder, keyed by the sequence name.
+    seq_name = os.path.basename(os.path.normpath(sequence_path))
+    gt_folder = os.path.join(project_path, 'data', 'gt', seq_name)
     os.makedirs(gt_folder, exist_ok=True)
     
     # Print the paths

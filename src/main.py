@@ -350,7 +350,20 @@ for parameters in param_combinations: # TODO parallel 4 loop
         # Load the Ground truth data 
         # ==============================================
         
-        with open(os.path.join(project_path,'data','gt',args.sequence_path,'movement_time_dict.json'), 'r') as json_file:
+        # Locate the ground-truth file. `sequence_path` may be a full path or a name,
+        # so try the project gt folder first, then the sequence folder itself.
+        _seq_name = os.path.basename(os.path.normpath(args.sequence_path))
+        _gt_candidates = [
+            os.path.join(project_path, 'data', 'gt', _seq_name, 'movement_time_dict.json'),
+            os.path.join(args.sequence_path, 'movement_time_dict.json'),
+        ]
+        gt_file = next((p for p in _gt_candidates if os.path.exists(p)), None)
+        if gt_file is None:
+            raise FileNotFoundError(
+                "movement_time_dict.json not found. Run gt.py first, or place it in "
+                + " or ".join(_gt_candidates)
+            )
+        with open(gt_file, 'r') as json_file:
             movement_time_dict = json.load(json_file)
         
         gt_object_names = np.array(list(movement_time_dict.keys()))
