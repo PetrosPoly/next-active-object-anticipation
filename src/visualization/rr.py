@@ -16,6 +16,13 @@ import argparse
 from math import tan
 from typing import Dict, Set
 import numpy as np
+
+# rerun-sdk exposes `rerun` via a path-style .pth that uv-managed venvs may not
+# process; add rerun_sdk to sys.path before importing.
+import sys as _sys, os as _os
+for _p in list(_sys.path):
+    if _os.path.isdir(_os.path.join(_p, "rerun_sdk")):
+        _sys.path.insert(0, _os.path.join(_p, "rerun_sdk")); break
 import rerun as rr
 from collections import deque
 from projectaria_tools.core.sophus import SE3

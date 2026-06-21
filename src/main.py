@@ -18,7 +18,17 @@ from math import tan
 from typing import Dict, Set
 
 import numpy as np
-import rerun as rr
+
+# rerun-sdk exposes `rerun` via a path-style .pth that uv-managed venvs may not
+# process; add rerun_sdk to sys.path so --runrr / --make_video visualization works.
+import sys as _sys, os as _os
+for _p in list(_sys.path):
+    if _os.path.isdir(_os.path.join(_p, "rerun_sdk")):
+        _sys.path.insert(0, _os.path.join(_p, "rerun_sdk")); break
+try:
+    import rerun as rr
+except ImportError:
+    rr = None
 
 import time
 import os                                   
@@ -52,26 +62,35 @@ from tqdm import tqdm
 
 from helpers import write_to_excel # Me: added by Petros and is only for debugging
 
-from projectaria_tools.utils.rerun_helpers import (
-    AriaGlassesOutline,                                      # Me: Return a list of points to be used to draw the outline of the glasses (line strip).
-    ToTransform3D                                            # Me: Helper function to convert Sophus SE3D pose to a Rerun Transform3D
-)                                                               
-
-from visualization.rr import (                               # Me: added by Petros
-    initialize_rerun_viewer,                                 # Me: Initialize the rerun software    
-    log_camera_calibration,                                  # Me: Log the camera features
-    log_aria_glasses,                                        # Me: Log the aria glasses
-    set_rerun_time,                                           
-    process_and_log_image,
-    log_device_transformations,                             
-    log_dynamic_object,
-    log_object,                                              # Me: Log an object 
-    log_object_line,                                         # Me: Log an object Line 
-    log_vector,                                              # Me: Log the velocity line
-    log_vector_2,
-    clear_logs_names,                                        # Me: At each timestep clear the objects from the visualization tool 
-    clear_logs_ids,
-)
+# Visualization imports are optional — only used when --runrr is passed.
+try:
+    from projectaria_tools.utils.rerun_helpers import (
+        AriaGlassesOutline,                                  # Me: Return a list of points to be used to draw the outline of the glasses (line strip).
+        ToTransform3D                                        # Me: Helper function to convert Sophus SE3D pose to a Rerun Transform3D
+    )
+    from visualization.rr import (                           # Me: added by Petros
+        initialize_rerun_viewer,                             # Me: Initialize the rerun software
+        log_camera_calibration,                              # Me: Log the camera features
+        log_aria_glasses,                                    # Me: Log the aria glasses
+        set_rerun_time,
+        process_and_log_image,
+        log_device_transformations,
+        log_dynamic_object,
+        log_object,                                          # Me: Log an object
+        log_object_line,                                     # Me: Log an object Line
+        log_vector,                                          # Me: Log the velocity line
+        log_vector_2,
+        clear_logs_names,                                    # Me: At each timestep clear the objects from the visualization tool
+        clear_logs_ids,
+    )
+except ImportError:
+    # rerun not available: visualization disabled. These names are only ever
+    # referenced behind `args.runrr and ...`, so they stay unused without --runrr.
+    AriaGlassesOutline = ToTransform3D = None
+    initialize_rerun_viewer = log_camera_calibration = log_aria_glasses = None
+    set_rerun_time = process_and_log_image = log_device_transformations = None
+    log_dynamic_object = log_object = log_object_line = log_vector = log_vector_2 = None
+    clear_logs_names = clear_logs_ids = None
 
 from utils.tools import (
     transform_point,                                          # Me: Transformation point from scene to camera frame
@@ -1064,7 +1083,7 @@ for parameters in param_combinations: # TODO parallel 4 loop
                         if args.video_out:
                             video_path = os.path.expanduser(args.video_out)
                         else:
-                            tmp_dir = os.path.join(project_path, 'data', 'predictions', sequence_path, 'tmp')
+                            tmp_dir = os.path.join(project_path, 'data', 'predictions', os.path.basename(os.path.normpath(sequence_path)), 'tmp')
                             os.makedirs(tmp_dir, exist_ok=True)
                             video_path = os.path.join(tmp_dir, 'preview.mp4')
                         writer = iio.get_writer(video_path, fps=max(1, args.fps), codec='libx264')
@@ -1238,8 +1257,11 @@ for parameters in param_combinations: # TODO parallel 4 loop
         # Store the predictions of the LLM
         # ==============================================  
         
-        # Define the path for saving the predictions
-        predictions_folder = os.path.join(project_path, 'data', 'predictions', sequence_path, parameter_folder_name)
+        # Define the path for saving the predictions. Use the sequence *name*
+        # (not the full path) so outputs go under <project>/data/predictions/
+        # and never overwrite files inside the dataset folder.
+        _seq_name = os.path.basename(os.path.normpath(sequence_path))
+        predictions_folder = os.path.join(project_path, 'data', 'predictions', _seq_name, parameter_folder_name)
         os.makedirs(predictions_folder, exist_ok=True)
 
         # Save the predictions to a JSON file
@@ -1264,7 +1286,7 @@ for parameters in param_combinations: # TODO parallel 4 loop
             if 'writer' in locals() and writer is not None:
                 writer.close()
                 if not args.video_out and frame_size is not None:
-                    src_tmp = os.path.join(project_path, 'data', 'predictions', sequence_path, 'tmp', 'preview.mp4')
+                    src_tmp = os.path.join(project_path, 'data', 'predictions', os.path.basename(os.path.normpath(sequence_path)), 'tmp', 'preview.mp4')
                     dst_path = os.path.join(predictions_folder, f"preview_{parameter_folder_name}.mp4")
                     os.makedirs(os.path.dirname(dst_path), exist_ok=True)
                     if os.path.exists(src_tmp):

@@ -1,0 +1,38 @@
+[project]
+name = "next-active-object-anticipation"
+version = "0.1.0"
+description = "Predicting the next object a user will interact with from egocentric (Aria glasses) gaze & motion, with an LLM reasoning layer."
+readme = "README.md"
+requires-python = ">=3.10,<3.11"
+license = { text = "Apache-2.0" }
+
+dependencies = [
+    # Egocentric data access (prebuilt wheel — no C++ build needed).
+    # Pinned: newer Meta releases may change the ADT API.
+    "projectaria-tools==1.5.8",
+    # Numerics & data
+    "numpy>=1.24",
+    "pandas>=2.0",
+    "scipy>=1.10",
+    "scikit-learn>=1.3",
+    # LLM prediction layer
+    "openai>=1.0",
+    "tiktoken>=0.5",
+    "pyyaml>=6.0",
+    # Visualization & utilities
+    "rerun-sdk>=0.16",
+    "tqdm>=4.65",
+    "openpyxl>=3.1",
+    # Demo GIF generation
+    "pillow>=10.0",
+    "imageio>=2.30",
+    "imageio-ffmpeg>=0.6.0",
+]
+
+[project.optional-dependencies]
+# Alternative Llama backend (utils/llama.py). Install with: uv sync --extra llama
+llama = ["llamaapi>=0.1"]
+
+[tool.uv]
+# This is an application, not an importable package — don't try to build it.
+package = false

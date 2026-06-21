@@ -10,6 +10,8 @@
   <em>Egocentric view from the Aria glasses: 2D object detections (yellow), the eye-gaze point (red), and the object currently in focus (green) — the signals the pipeline turns into a next-object prediction.</em>
 </p>
 
+▶ **[Watch the algorithm explainer video](docs/algorithm_demo.mp4)** — the egocentric stream with the live LLM top-3 prediction, inferred goal, and the ground-truth object the user actually reaches for.
+
 ---
 
 ## Motivation
@@ -64,38 +66,68 @@ More plots (per-parameter TP/FP breakdowns, bar charts) are in [`docs/results/`]
 
 ## Installation
 
+The environment is managed with [uv](https://docs.astral.sh/uv/). `projectaria-tools`
+installs as a prebuilt wheel — **no C++/CMake build needed** (the Meta source build is
+only required to modify the library itself, which this project does not).
+
 ```bash
 git clone https://github.com/PetrosPoly/next-active-object-anticipation.git
 cd next-active-object-anticipation
 
-python -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt
+uv sync                 # creates .venv/ and installs pinned deps (incl. python 3.10)
+uv sync --extra llama   # optional: also install the Llama backend
 
-cp .env.example .env   # then add your OPENAI_API_KEY
+cp .env.example .env    # then add your OPENAI_API_KEY (only needed for --use_llm)
 ```
+
+<details><summary>pip alternative</summary>
+
+```bash
+python3.10 -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt
+```
+</details>
 
 ## Data
 
 This project uses the **Aria Digital Twin (ADT)** dataset, which must be downloaded
-separately (it is **not** included in this repo). Follow the official instructions:
+separately (it is **not** committed — it is large and Meta-licensed). Follow the
+official instructions:
 <https://facebookresearch.github.io/projectaria_tools/docs/open_datasets/aria_digital_twin_dataset/>
 
-Each sequence folder should contain `video.vrs`, `aria_trajectory.csv`, and the ADT
-ground-truth files. `--sequence_path` is the full path to that folder.
+Place each sequence under `data/adt/`, e.g. `data/adt/Apartment_release_clean_seq150_M1292/`
+(containing `video.vrs`, `aria_trajectory.csv`, and the ADT ground-truth files).
+`--sequence_path` is the full path to that folder.
 
 ## Usage
 
+The quickest path is the demo script (perception-only by default — no API key, no cost):
+
+```bash
+./run_demo.sh data/adt/Apartment_release_clean_seq150_M1292            # perception only
+./run_demo.sh data/adt/Apartment_release_clean_seq150_M1292 --use_llm  # with LLM predictions
+```
+
+Or run the stages directly with `uv run`:
+
 ```bash
 cd src
+SEQ=../data/adt/Apartment_release_clean_seq150_M1292
 
-# 1. Generate ground truth (objects that moved + timings) for a sequence
-python gt.py --sequence_path /path/to/Apartment_release_clean_seq150_M1292
+uv run gt.py   --sequence_path "$SEQ"              # 1. ground truth
+uv run main.py --sequence_path "$SEQ"              # 2. perception-only (no API key)
+uv run main.py --sequence_path "$SEQ" --use_llm    # 2b. with LLM predictions
+uv run main.py --sequence_path "$SEQ" --make_video # 2c. export an annotated mp4
+uv run results_parallel.py                         # 3. evaluate
+```
 
-# 2. Run the anticipation pipeline (with LLM predictions)
-python main.py --sequence_path /path/to/Apartment_release_clean_seq150_M1292 --use_llm
+To regenerate the explainer video at the top of this README from existing predictions:
 
-# 3. Evaluate predictions against ground truth
-python results_parallel.py
+```bash
+uv run tools/make_algorithm_video.py \
+    --sequence data/adt/<seq> \
+    --predictions data/adt/<seq>/<param_folder> \
+    --out docs/algorithm_demo.mp4
 ```
 
 Outputs are written per parameter combination as
@@ -132,8 +164,12 @@ src/
 │   └── txt_files/prompts.txt   # LLM prompt template
 ├── visualization/rr.py         # rerun.io 3D visualization
 └── helpers/                    # Excel debug logging
-docs/                           # architecture + result plots + demo.gif
+tools/make_algorithm_video.py   # render the explainer video from predictions
+data/adt/                       # ADT sequences (downloaded; gitignored)
+docs/                           # architecture, result plots, demo.gif, algorithm_demo.mp4
 configs/                        # reference parameter values
+pyproject.toml / uv.lock        # uv-managed environment
+.venv/                          # local environment (gitignored)
 ```
 
 > The full set of experimental scripts, alternative LLM backends and analysis

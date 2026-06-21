@@ -26,8 +26,12 @@ fi
 
 REPO="$(cd "$(dirname "$0")" && pwd)"
 
-# Prefer a local virtualenv if one is active/available, else system python.
-PY="${PYTHON:-python}"
+# Prefer the uv-managed .venv, then $PYTHON, then system python.
+if [[ -x "$REPO/.venv/bin/python" ]]; then
+  PY="$REPO/.venv/bin/python"
+else
+  PY="${PYTHON:-python}"
+fi
 
 cd "$REPO/src"
 

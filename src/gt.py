@@ -15,7 +15,17 @@
 import argparse
 
 import numpy as np
-import rerun as rr
+
+# rerun-sdk exposes `rerun` via a path-style .pth that uv-managed venvs may not
+# process; add rerun_sdk to sys.path so visualization works.
+import sys as _sys, os as _os
+for _p in list(_sys.path):
+    if _os.path.isdir(_os.path.join(_p, "rerun_sdk")):
+        _sys.path.insert(0, _os.path.join(_p, "rerun_sdk")); break
+try:
+    import rerun as rr
+except ImportError:
+    rr = None
 import os                                   # added by Petros
 from collections import deque               # added by Petros 
 
