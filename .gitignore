@@ -7,7 +7,7 @@
 data/
 datasets/
 *.csv
-!docs/results/**/*.csv
+!docs/figures/**/*.csv
 
 # ---- Generated outputs ----
 logs/

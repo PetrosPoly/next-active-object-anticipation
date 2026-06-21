@@ -60,9 +60,9 @@ Evaluated on ADT apartment sequences (food-preparation and work scenarios) acros
 
 | | |
 |---|---|
-| ![Combined metrics](docs/results/Apartment_release_clean_seq150_M1292/combined_metrics.png) | ![Precision vs recall](docs/results/Apartment_release_clean_seq150_M1292/precision_vs_recall.png) |
+| ![Combined metrics](docs/figures/Apartment_release_clean_seq150_M1292/combined_metrics.png) | ![Precision vs recall](docs/figures/Apartment_release_clean_seq150_M1292/precision_vs_recall.png) |
 
-More plots (per-parameter TP/FP breakdowns, bar charts) are in [`docs/results/`](docs/results/).
+More plots (per-parameter TP/FP breakdowns, bar charts) are in [`docs/figures/`](docs/figures/).
 
 ## Installation
 
