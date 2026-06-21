@@ -11,11 +11,21 @@ from utils.tools import load_config
 # Load the configuration
 config = load_config()
 
-# OpenAI API key from environment variable
-api_key = os.getenv("OPENAI_API_KEY")
-if not api_key:
-    raise ValueError("OPENAI_API_KEY environment variable is not set.")
-client = OpenAI(api_key=api_key)
+# OpenAI client, initialized lazily so the module can be imported (and the
+# perception-only pipeline can run) without an API key. The key is only
+# required when the LLM is actually queried.
+_client = None
+def get_client():
+    global _client
+    if _client is None:
+        api_key = os.getenv("OPENAI_API_KEY")
+        if not api_key:
+            raise ValueError(
+                "OPENAI_API_KEY environment variable is not set. "
+                "Set it to use the LLM, or run perception-only (omit --use_llm)."
+            )
+        _client = OpenAI(api_key=api_key)
+    return _client
 
 # Project paths
 project_path = os.path.expanduser(config["project_path"])
@@ -117,7 +127,7 @@ def activate_llm(log_content, parameters, max_retries = 5):
 
     print('Message to LLM:', message_to_LLM)
     
-    response = client.chat.completions.create(
+    response = get_client().chat.completions.create(
     model= models[0],  # Use GPT-4o mini model
     messages= message_to_LLM
     )

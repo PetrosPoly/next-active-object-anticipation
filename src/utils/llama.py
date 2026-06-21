@@ -3,19 +3,25 @@ from projectaria_tools.core.sophus import SE3
 from collections import deque
 from typing import Dict, List, Tuple      
 
-from transformers import AutoTokenizer, AutoModelForCausalLM
-import torch
-from llamaapi import LlamaAPI
-
 import logging
 import os
 import csv
 import yaml
 import json
 
-# Initialize the tokenizer and model
-print('The Llama Key is the following', os.environ['LLAMA_API_KEY'])
-llama = LlamaAPI(os.environ['LLAMA_API_KEY'])
+# Llama client, initialized lazily: the optional `llamaapi` package and the
+# LLAMA_API_KEY are only required when the Llama backend is actually used,
+# so importing this module never fails on a default (OpenAI-only) setup.
+_llama = None
+def get_llama():
+    global _llama
+    if _llama is None:
+        from llamaapi import LlamaAPI  # optional dependency
+        api_key = os.getenv("LLAMA_API_KEY")
+        if not api_key:
+            raise ValueError("LLAMA_API_KEY environment variable is not set.")
+        _llama = LlamaAPI(api_key)
+    return _llama
 
 # Project path
 # project_path = "/home/ppolydorou/Documents/projectaria_sandbox/next_active_object_anticipation_projectaria_twin_dataset/projects/AriaDigitalTwinDatasetTools/object_anticipation/adt"
@@ -99,7 +105,7 @@ def activate_llama(log_content, parameters):
     }
     
     # Make the API call
-    response = llama.run(api_request_json)
+    response = get_llama().run(api_request_json)
     
     # Handle the response
     response_json = response.json()

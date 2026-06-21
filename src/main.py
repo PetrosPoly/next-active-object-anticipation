@@ -253,8 +253,7 @@ for parameters in param_combinations: # TODO parallel 4 loop
         rgb_camera_calibration = gt_provider.get_aria_camera_calibration(rgb_stream_id) # Me: Get the camera calibration of an Aria camera, including intrinsics, distortion params,and projection functions.
         T_Device_Cam = rgb_camera_calibration.get_transform_device_camera()             # Me: Τhis does not change based on time
         args.runrr and log_camera_calibration(rr, rgb_camera_calibration, args)
-        input("Press Enter to continue...") # Me: Wait for user input before proceeding. This is useful for debugging or pausing the script at a specific point.
-        
+
         # Get all timestamps (in ns) of all observations of an Aria sensor
         img_timestamps_ns = gt_provider.get_aria_device_capture_timestamps_ns(rgb_stream_id)    
         img_timestamps_ns = [
@@ -380,10 +379,7 @@ for parameters in param_combinations: # TODO parallel 4 loop
             ## Current time in seconds
             current_time_ns = timestamp_ns
             current_time_s = round((current_time_ns / 1e9 - start_time), 3)
-            
-            if current_time_s > 70 and current_time_s < 71 :
-                print('stop')      
-                  
+
             ## Time Difference
             time_difference_ns = (current_time_ns - previous_time_ns) / 1e9                                                  # Me: Calculate the time difference in seconds
             previous_time_ns = current_time_ns
