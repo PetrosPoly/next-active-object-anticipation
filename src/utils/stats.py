@@ -247,3 +247,88 @@ class Statistics:
             if timestamp == target_timestamp:
                 return count
         return None  
+    
+
+
+    # def time_window(self,
+    #     current_time_s: int,
+    #     time_difference: int,
+    #     users_position: np.ndarray,
+    #     users_velocity: np.ndarray, 
+    #     object_ids: List[int],
+    #     object_positions: List[np.ndarray],  # List of numpy arrays
+    #     dot_products: List[float],
+    #     distances: List[float], 
+    #     T_Scene_Device, 
+    # ) -> Tuple[Dict[int, float], Dict[int, float], Dict[int, deque], Dict[int, deque], Dict[int, deque], Dict[int, deque], Dict[int, deque], Dict[int, deque]]:
+        
+    #     """initialiase every time a function is called to have only the objects that are visible"""
+    #     self.avg_dots = {}
+    #     self.avg_distances = {}
+    #     self.avg_dots_list = []
+    #     self.avg_distances_list = []
+        
+    #     """Update statistics based on the current time window."""
+    #     for parameter, name in self.parameters:
+    #         self.remove_outdated_entries(parameter, current_time_s, name, self.window_time)
+        
+    #     for obj_id, dot_product, distance, obj_position in zip(object_ids, dot_products, distances, object_positions):
+            
+    #         # Time to approach an object 
+    #         user_object_time_xyz, user_object_time_xz = self.interaction_time_user_object(users_velocity, users_position, obj_position[0], T_Scene_Device)
+            
+    #         # Dictionary having the time of with the user
+    #         self.object_time_interaction[obj_id] = user_object_time_xz
+            
+    #         # Deque for dots
+    #         if obj_id in self.past_dots:
+    #             self.past_dots[obj_id].append((current_time_s, dot_product))
+    #         else:
+    #             self.past_dots[obj_id] = deque([(current_time_s, dot_product)])
+            
+    #         # Deque for distances (user / objects)
+    #         if obj_id in self.past_distances:
+    #             self.past_distances[obj_id].append((current_time_s, distance))
+    #         else:
+    #             self.past_distances[obj_id] = deque([(current_time_s, distance)])
+            
+    #         # Counter for Visibility
+    #         if obj_id in self.visibility_counter:
+    #             self.visibility_counter[obj_id].append((current_time_s, self.calculate_counter(obj_id, current_time_s)))
+    #         else:
+    #             self.visibility_counter[obj_id] = deque([(current_time_s, 0)])
+            
+    #         # Counter for DOT
+    #         if obj_id not in self.high_dot_counts and dot_product > self.high_dot_threshold:                  # Me: 0.9 
+    #             self.high_dot_counts[obj_id] = deque([(current_time_s, 0)])
+    #         elif dot_product > self.high_dot_threshold:
+    #             self.high_dot_counts[obj_id].append((current_time_s, self.calculate_dot_distance_time_counters(obj_id, self.high_dot_counts, typedict='dot'))) 
+            
+    #         # Counter for DISTANCE
+    #         if obj_id not in self.close_distance_counts and distance < self.distance_threshold:           # Me: 2 meters
+    #             self.close_distance_counts[obj_id] = deque([(current_time_s, 0)])
+    #         elif distance < self.distance_threshold:
+    #             self.close_distance_counts[obj_id].append((current_time_s, self.calculate_dot_distance_time_counters(obj_id, self.close_distance_counts, typedict='low_distance')))  
+
+    #     # calculate the average Dots and the average distances 
+    #     for obj_id, dots in self.past_dots.items():
+    #         if len(dots) > 0:
+    #             total_dots = sum(dot for _, dot in dots)
+    #             count_dots = len(dots)
+    #             self.avg_dots[obj_id] = total_dots / count_dots
+    #             self.avg_dots_list.append(self.avg_dots[obj_id])
+                
+    #     for obj_id, dists in self.past_distances.items():
+    #         if len(dists) > 0:
+    #             total_distance = sum(dist for _, dist in dists)
+    #             count_distance = len(dists)
+    #             self.avg_distances[obj_id] = total_distance / count_distance
+    #             self.avg_distances_list.append(self.avg_distances[obj_id])
+        
+    #     # Return
+    #     return (self.past_dots, self.past_distances,
+    #             self.avg_dots, self.avg_distances, self.avg_dots_list, self.avg_distances_list, 
+    #             self.visibility_counter, self.visibility_duration, 
+    #             self.high_dot_counts, self.close_distance_counts, self.very_close_distance_counts, 
+    #             self.object_time_interaction, self.time_to_approach_counts,
+    #             )

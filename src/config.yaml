@@ -1,0 +1,8 @@
+# Pipeline configuration.
+#
+# project_path: root of the source tree, used to locate prompts, logs and
+#   ground-truth files. Leave empty to auto-resolve to this file's directory
+#   (recommended). Can also be overridden with the PROJECT_ROOT env var.
+project_path: ""
+interaction_log_filename: "interaction_log.txt"
+prompt_filename: "prompts.txt"

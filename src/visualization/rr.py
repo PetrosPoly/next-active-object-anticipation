@@ -135,7 +135,27 @@ def log_vector(rr, vector_type,  start_point, end_point):
         f"world/lines/{vector_type}", 
         rr.LineStrips3D([start_point, end_point])
     )
-    
+
+def log_vector_2(rr, vector_type, start_point, end_point):
+    """
+    Logs an arrow in 3D space from start_point to end_point.
+
+    Parameters:
+        rr: The rerun logging module.
+        vector_type: A string identifier for the arrow type.
+        start_point: A 3D point (array-like) representing the arrow's origin.
+        end_point: A 3D point (array-like) representing the arrow's end.
+    """
+    direction_vector = end_point - start_point
+    rr.log(
+        f"world/arrows/{vector_type}",
+        rr.Arrows3D(
+            origins=[start_point],  # Explicitly pass to 'origins'
+            vectors=[direction_vector]  # Explicitly pass to 'vectors'
+        )
+    )
+
+
 def log_object_line(rr, instance_info, camera_position, object_position):
     # Log the line from the camera frame to the object
     rr.log(

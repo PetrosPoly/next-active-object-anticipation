@@ -1541,10 +1541,10 @@ Visualization of the model
 
 #         # instance info 
 #         instance_info = gt_provider.get_instance_info_by_id(obj_id)
-
+        
 #         # name
 #         object_name = instance_info.name
-
+        
 #         # Handling the object coordinates 
 #         """
 #         ** bbox_3d.aabb --> represents the minimum and maximum coordinates that define the AABB --> [x_min, y_min, z_min, x_max, y_max, z_max]
@@ -1565,117 +1565,117 @@ Visualization of the model
 #         # print(f"Object name: {instance_info.name}, Dot Product: {dot_product}, Distance: {distance}, Position on scene {bbox_3d.transform_scene_object.translation()}")                
 #         # print(f"Position on Camera frame: {obj_position_cam}, Position on Scene frame: {obj_position_scene}")
 #         # print("-" * 40)  # Print a line of dashes as a separator | # More sophisticated separator)
-
+            
 #         # ==============================================
 #         # VECTORS - POSITION / VELOCITY / DISTANCE / PROJECTION  
 #         # ==============================================  
-
+        
 #         # POSITION - vectors
 #         position_vector_xyz = T_Scene_Device.translation()[0]   
 #         position_vector_xz = np.array([position_vector_xyz[0], 0, position_vector_xyz[2]])
-
+        
 #         # VELOCITY - vector in 3D
 #         velocity_vector_xyz = T_Scene_Device.rotation().to_matrix() @ user_velocity_device
 #         velocity_vector_xz = np.array([velocity_vector_xyz[0], 0, velocity_vector_xyz[2]])
 #         velocity_vector_xyz_on_user = velocity_vector_xyz + position_vector_xyz     # End of the velocity vector (scaled by velocity)
 #         velocity_vector_xz_on_user = velocity_vector_xz + position_vector_xyz       # Velocity vector in 2D 
-
+        
 #         # DISTANCE vector in 3D from user to object
 #         displacement_vector = (obj_position_scene[0] - position_vector_xyz) 
 #         displacement_unit_vector = displacement_vector / np.linalg.norm(displacement_vector)
 #         displacement_vector_xz = np.array([displacement_vector[0], 0, displacement_vector[2]])
 #         displacement_unit_vector_xz = np.array([displacement_unit_vector[0], 0, displacement_unit_vector[2]])
-
+        
 #         # DISTANCE vector in 3D from user to object ON USER
 #         displacement_vector_on_user = (obj_position_scene[0] - position_vector_xyz) + position_vector_xyz
 #         displacement_unit_vector_on_user = displacement_vector / np.linalg.norm(displacement_vector) + position_vector_xyz
 #         displacement_vector_xz_on_user = np.array([displacement_vector[0], 0, displacement_vector[2]]) + position_vector_xyz
 #         displacement_unit_vector_xz_on_user = np.array([displacement_unit_vector[0], 0, displacement_unit_vector[2]]) + position_vector_xyz
-
+        
 #         # PROJECTED VELOCITY vector in 3D from user to object  (Project the user's velocity onto the displacement vector)
 #         projected_velocity_xyz = np.dot(velocity_vector_xyz, displacement_unit_vector) * displacement_unit_vector 
 #         projected_velocity_xz = np.array([projected_velocity_xyz[0], 0, projected_velocity_xyz[2]])
 #         projected_velocity_xyz_on_user = projected_velocity_xyz + position_vector_xyz 
 #         projected_velocity_xz_on_user = projected_velocity_xz + position_vector_xyz
-
+        
 #         # ==============================================
 #         # VISUALISATION ORIGIN
 #         # ==============================================  
-
+        
 #         # # POSITION - Visualize the position vector (3D & 2D)
 #         # args.runrr and log_vector(rr, "origin_position_xyz", np.array([0,0,0]), position_vector_xyz)
 #         # args.runrr and log_vector(rr, "origin_position_ema_xyz", np.array([0,0,0]), user_ema_position)
 #         # args.runrr and log_vector(rr, "origin_position_xz", np.array([0,0,0]), position_vector_xz)
-
+        
 #         # # VELOCITY - Visualize the velocity vector as a line in the GUI
 #         # args.runrr and log_vector(rr, "origin_velocity_xyz", np.array([0,0,0]), velocity_vector_xyz)
 #         # args.runrr and log_vector(rr, "origin_velocity_ema_xyz", np.array([0,0,0]), user_ema_velocity)
 #         # args.runrr and log_vector(rr, "origin_velocity_xz", np.array([0,0,0]), velocity_vector_xz)
-
+        
 #         # # PROJECTED VELOCITY - Visualize the velocity vector projected towards the  
 #         # args.runrr and log_vector(rr, "origin_projected_velocity_xyz", np.array([0,0,0]), projected_velocity_xyz)
 #         # args.runrr and log_vector(rr, "origin_projected_velocity_xz", np.array([0,0,0]), projected_velocity_xz)
-
+        
 #         # # DISTANCE 3D - Visualize the position vector (3D & 2D)
 #         # args.runrr and log_vector(rr, "origin_distance_vector_xyz", np.array([0,0,0]), displacement_vector)
 #         # args.runrr and log_vector(rr, "origin_distance_unit_vector_xyz", np.array([0,0,0]), displacement_unit_vector)
 #         # args.runrr and log_vector(rr, "origin_distance_vector_xz", np.array([0,0,0]), displacement_vector_xz)
 #         # args.runrr and log_vector(rr, "origin_distance_unit_vector_xz", np.array([0,0,0]), displacement_unit_vector_xz)
-
+        
 #         # # OBJECT POSITION VECTOR - Visualise the position of the vector in the space 
 #         # args.runrr and log_vector(rr, "origin_object_position", np.array([0,0,0]), obj_position_scene[0])
 #         # args.runrr and log_vector(rr, "camera_to_object", camera_position_scene, filtered_vector_camera_objects_scene[0] + camera_position_scene)
 #         # args.runrr and log_vector(rr, "origin_camera_to_object", np.array([0,0,0]), filtered_vector_camera_objects_scene[0])
-
+        
 #         # ==============================================
 #         # VISUALISATION ON USER 
 #         # ==============================================  
-
+        
 #         # # VELOCITY - Visualize the velocity vector as a line in the GUI
 #         args.runrr and log_vector(rr, "device_velocity_xyz", position_vector_xyz, velocity_vector_xyz_on_user)
 #         # args.runrr and log_vector(rr, "device_velocity_xz", position_vector_xyz, velocity_vector_xz_on_user)
-
+        
 #         # # PROJECTED VELOCITY - Visualize the velocity vector projected towards the  
 #         # args.runrr and log_vector(rr, f"device_projected_velocity_xyz", position_vector_xyz, projected_velocity_xyz_on_user)
 #         # args.runrr and log_vector(rr, f"device_projected_velocity_xz", position_vector_xyz, projected_velocity_xz_on_user)
-
+        
 #         # # DISTANCE 3D - Visualize the position vector (3D & 2D) - ON USER 
 #         # args.runrr and log_vector(rr, f"device_distance_vector_xy", position_vector_xyz, displacement_vector_on_user)
 #         # args.runrr and log_vector(rr, f"device_distance_unit_vector_xyz", position_vector_xyz, displacement_unit_vector_on_user)
 #         # args.runrr and log_vector(rr, f"device_distance_vector_xz", position_vector_xyz, displacement_vector_xz_on_user)
 #         # args.runrr and log_vector(rr, f"device_distance_unit_vector_xz", position_vector_xyz, displacement_unit_vector_xz_on_user)
-
+        
 #         # OBJECT LINE - Visualize the line from camera to object
 #         # args.runrr and log_object_line(rr, instance_info, position_vector_xyz, obj_position_scene[0])
 #         # args.runrr and log_object_line(rr, instance_info, camera_position_scene[0], obj_position_scene[0])
 
 #         # OBJECT BOUNDING BOX - Visualize the object
 #         args.runrr and log_object(rr, instance_info, obb)
-
+        
 #         # ==============================================
 #         # VISUALISATION FRAMES
 #         # ==============================================    
-
+        
 #         # # CAMERA Z-AXIS ONLY ROTATION TO SCENE
 #         # cam_z_axis_rotation = T_Scene_Cam.rotation().to_matrix() @ cam_z_axis     
 #         # args.runrr and log_vector(rr, "origin_camera_z_axis_rotation_only", np.array([0,0,0]), cam_z_axis_rotation)
 #         # args.runrr and log_vector(rr, "origin_camera_z_axis", np.array([0,0,0]), cam_z_axis_scene)
-
+        
 #         # # CAMERA
 #         # args.runrr and log_vector(rr, "camera_x_axis", camera_position_scene[0], cam_x_axis_scene)
 #         # args.runrr and log_vector(rr, "camera_y_axis", camera_position_scene[0], cam_y_axis_scene)
 #         # args.runrr and log_vector(rr, "camera_z_axis", camera_position_scene[0], cam_z_axis_scene)
-
+        
 #         # # DEVICE
 #         # args.runrr and log_vector(rr, "device_x_axis", position_vector_xyz, device_x_axis_scene)
 #         # args.runrr and log_vector(rr, "device_y_axis", position_vector_xyz, device_y_axis_scene)
 #         # args.runrr and log_vector(rr, "device_z_axis", position_vector_xyz, device_z_axis_scene)
-
+        
 #         # # WORLD
 #         # args.runrr and log_vector(rr, "world_x_axis", np.array([0,0,0]), world_x_axis)
 #         # args.runrr and log_vector(rr, "world_y_axis", np.array([0,0,0]), world_y_axis)
 #         # args.runrr and log_vector(rr, "world_z_axis", np.array([0,0,0]), world_z_axis)
-
+        
 #         # Add to previous_obj_ids to clear in the next timestep
 #         previous_obj_names.add(instance_info.name)
 #         previous_obj_ids.add(obj_id)
@@ -1689,124 +1689,124 @@ Debugging process regarding the time to approach & VISUALIZATION
 """
 
 # DEBUGGING PURPOSES
-# if object_name in ["ChoppingBoard", "KitchenKnife", "WoodenSpoon", "WoodenFork", "Donut_B", "Cereal_Anon", "DinoToy", "WoodenToothbrushHolder", "Cracker_Anon", "BlackCeramicMug"]:
+                    # if object_name in ["ChoppingBoard", "KitchenKnife", "WoodenSpoon", "WoodenFork", "Donut_B", "Cereal_Anon", "DinoToy", "WoodenToothbrushHolder", "Cracker_Anon", "BlackCeramicMug"]:
+                        
+                    #     # ==============================================
+                    #     # 3D MOTION 
+                    #     # ==============================================
+                        
+                    #     # DISTANCE
+                      
+                    #     displacement_vector_xyz = (filtered_obj_positions_scene[index][0] - user_ema_position)
+                    #     distance_xyz = np.linalg.norm(displacement_vector_xyz)
+                    #     displacement_unit_vector_xyz = displacement_vector_xyz / np.linalg.norm(displacement_vector_xyz)
+                        
+                    #     # VELOCITY 
+                    #     velocity_xyz = T_Scene_Device.rotation().to_matrix() @ user_velocity_device
 
-#     # ==============================================
-#     # 3D MOTION 
-#     # ==============================================
+                    #     # PROJECTED VELOCITY
+                    #     projected_velocity_xyz = np.dot(velocity_xyz, displacement_unit_vector_xyz) * displacement_unit_vector_xyz 
+                    #     speed_xyz = np.linalg.norm(projected_velocity_xyz)
+                    #     time_xyz = distance_xyz / speed_xyz
+                        
+                    #     # ==============================================
+                    #     # PLANAR MOTION ON XZ PLANE
+                    #     # ==============================================
 
-#     # DISTANCE
+                    #     # DISTANCE
+                    #     displacement_vector_xz = np.array([displacement_vector_xyz[0], 0, displacement_vector_xyz[2]])
+                    #     displacement_unit_vector_xz = displacement_vector_xz / np.linalg.norm(displacement_vector_xz)
+                    #     distance_xz = np.linalg.norm(displacement_vector_xz)
+                        
+                    #     # VELOCITY 
+                    #     velocity_xz = np.array([velocity_xyz[0], 0, velocity_xyz[2]])
+                          
+                    #     # ==============================================
+                    #     # 2 WAYS OF CALCULATING THE TIME
+                    #     # ==============================================
+                        
+                    #     # 1ST WAY
+                    #     projected_velocity_xz_v1 = np.array([projected_velocity_xyz[0], 0, projected_velocity_xyz[2]])
+                    #     speed_xz_v1 = np.linalg.norm(projected_velocity_xz_v1)
+                    #     time_xz_v1 = distance_xz / speed_xz_v1
+                        
+                    #     # 2ND WAY
+                    #     projected_velocity_xz_v2 = np.dot(velocity_xz, displacement_unit_vector_xz) * displacement_unit_vector_xz 
+                    #     speed_xz_v2 = np.linalg.norm(projected_velocity_xz_v2)
+                    #     time_xz_v2 = distance_xz / speed_xz_v2
+                        
+                    #     # ==============================================
+                    #     # PRINTS
+                    #     # ==============================================
+                        
+                    #     print("-" * 40)  # Print a line of dashes as a separator | # More sophisticated separator)
+                    #     print('')
+                    #     print(f"\t Position of {object_name} in the space is: {filtered_obj_positions_scene[index][0]}")
+                    #     print(f"\t Position of user in the space is: {user_ema_position}")
+                    #     print('')
+                    #     print(f"\t Displacement from user to the {object_name} is : {displacement_vector_xyz}")
+                    #     print(f"\t Distance is {distance_xyz}")
+                    #     print('')
+                    #     print(f"\t Velocity of user in the space is: {velocity_xyz}")
+                    #     print(f"\t Projected Velocity of user in the space is: {projected_velocity_xyz}")
+                    #     print(f"\t Speed is {speed_xyz}")
+                    #     print(f"\t Time is {time_xyz}")
+                    #     print('')
+                    #     print(f"\t Displacement from user to the {object_name} in xz plane is : {displacement_vector_xz}")
+                    #     print(f"\t Distance in 2D is {distance_xz}")
+                    #     print('')
+                    #     print(f"\t Velocity of user in 2D is: {velocity_xz}")  
+                    #     print(f"\t Projected Velocity v1 of user in the space is: {projected_velocity_xz_v1}")
+                    #     print(f"\t Speed in 2D is {speed_xz_v1}")
+                    #     print(f"\t Time is {time_xz_v1}")
+                    #     print('')
+                    #     print(f"\t Projected Velocity v2 of user in the space is: {projected_velocity_xz_v2}")
+                    #     print(f"\t Speed in 2D is {speed_xz_v2}")
+                    #     print(f"\t Time is {time_xz_v2}")
+                    #     print(f"\t Time as calculated using the function of STATS class", {object_time_xz})
+                        
+                    #     if args.runrr and args.visualize_objects:
+                            
+                    #         # ==============================================
+                    #         # VISUALIZATION
+                    #         # ==============================================
+                            
+                    #         # OBJECT LINE
+                    #         log_object_line(rr, gt_provider.get_instance_info_by_id(object_id) , user_ema_position, filtered_obj_positions_scene[index][0])
 
-#     displacement_vector_xyz = (filtered_obj_positions_scene[index][0] - user_ema_position)
-#     distance_xyz = np.linalg.norm(displacement_vector_xyz)
-#     displacement_unit_vector_xyz = displacement_vector_xyz / np.linalg.norm(displacement_vector_xyz)
-
-#     # VELOCITY 
-#     velocity_xyz = T_Scene_Device.rotation().to_matrix() @ user_velocity_device
-
-#     # PROJECTED VELOCITY
-#     projected_velocity_xyz = np.dot(velocity_xyz, displacement_unit_vector_xyz) * displacement_unit_vector_xyz 
-#     speed_xyz = np.linalg.norm(projected_velocity_xyz)
-#     time_xyz = distance_xyz / speed_xyz
-
-#     # ==============================================
-#     # PLANAR MOTION ON XZ PLANE
-#     # ==============================================
-
-#     # DISTANCE
-#     displacement_vector_xz = np.array([displacement_vector_xyz[0], 0, displacement_vector_xyz[2]])
-#     displacement_unit_vector_xz = displacement_vector_xz / np.linalg.norm(displacement_vector_xz)
-#     distance_xz = np.linalg.norm(displacement_vector_xz)
-
-#     # VELOCITY 
-#     velocity_xz = np.array([velocity_xyz[0], 0, velocity_xyz[2]])
-
-#     # ==============================================
-#     # 2 WAYS OF CALCULATING THE TIME
-#     # ==============================================
-
-#     # 1ST WAY
-#     projected_velocity_xz_v1 = np.array([projected_velocity_xyz[0], 0, projected_velocity_xyz[2]])
-#     speed_xz_v1 = np.linalg.norm(projected_velocity_xz_v1)
-#     time_xz_v1 = distance_xz / speed_xz_v1
-
-#     # 2ND WAY
-#     projected_velocity_xz_v2 = np.dot(velocity_xz, displacement_unit_vector_xz) * displacement_unit_vector_xz 
-#     speed_xz_v2 = np.linalg.norm(projected_velocity_xz_v2)
-#     time_xz_v2 = distance_xz / speed_xz_v2
-
-#     # ==============================================
-#     # PRINTS
-#     # ==============================================
-
-#     print("-" * 40)  # Print a line of dashes as a separator | # More sophisticated separator)
-#     print('')
-#     print(f"\t Position of {object_name} in the space is: {filtered_obj_positions_scene[index][0]}")
-#     print(f"\t Position of user in the space is: {user_ema_position}")
-#     print('')
-#     print(f"\t Displacement from user to the {object_name} is : {displacement_vector_xyz}")
-#     print(f"\t Distance is {distance_xyz}")
-#     print('')
-#     print(f"\t Velocity of user in the space is: {velocity_xyz}")
-#     print(f"\t Projected Velocity of user in the space is: {projected_velocity_xyz}")
-#     print(f"\t Speed is {speed_xyz}")
-#     print(f"\t Time is {time_xyz}")
-#     print('')
-#     print(f"\t Displacement from user to the {object_name} in xz plane is : {displacement_vector_xz}")
-#     print(f"\t Distance in 2D is {distance_xz}")
-#     print('')
-#     print(f"\t Velocity of user in 2D is: {velocity_xz}")  
-#     print(f"\t Projected Velocity v1 of user in the space is: {projected_velocity_xz_v1}")
-#     print(f"\t Speed in 2D is {speed_xz_v1}")
-#     print(f"\t Time is {time_xz_v1}")
-#     print('')
-#     print(f"\t Projected Velocity v2 of user in the space is: {projected_velocity_xz_v2}")
-#     print(f"\t Speed in 2D is {speed_xz_v2}")
-#     print(f"\t Time is {time_xz_v2}")
-#     print(f"\t Time as calculated using the function of STATS class", {object_time_xz})
-
-#     if args.runrr and args.visualize_objects:
-
-#         # ==============================================
-#         # VISUALIZATION
-#         # ==============================================
-
-#         # OBJECT LINE
-#         log_object_line(rr, gt_provider.get_instance_info_by_id(object_id) , user_ema_position, filtered_obj_positions_scene[index][0])
-
-#         # OBJECT DISTANCE AND DISPLACEMENT
-#         log_vector(rr, f"debugging_distance_user_{object_name}", user_ema_position, filtered_obj_positions_scene[index][0])      # line from user to object
-#         log_vector(rr, f"debugging_distance_displacement_{object_name}", np.array([0,0,0]), displacement_vector_xyz)             # line from orgin with same direction and magnitude as from user to object
-#         log_vector(rr, f"debugging_distance_displacement_{object_name}_xz", np.array([0,0,0]) , displacement_vector_xz)
-#         log_vector(rr, f"debugging_distance_unit_displacement_{object_name}", np.array([0,0,0]) , displacement_unit_vector_xyz)
-#         log_vector(rr, f"debugging_distance_unit_displacement_{object_name}_xz", np.array([0,0,0]) , displacement_unit_vector_xz)
-
-#         # PROJECTED VELOCITY
-#         log_vector(rr, "debugging_projected_velocity", np.array([0,0,0]), projected_velocity_xyz) 
-#         log_vector(rr, "debugging_projected_velocity_xz_v1", np.array([0,0,0]), projected_velocity_xz_v1) 
-#         log_vector(rr, "debugging_projected_velocity_xz_v2", np.array([0,0,0]), projected_velocity_xz_v2) 
-
-#         # VELOCITY
-#         log_vector(rr, "debugging_velocity", np.array([0,0,0]),  (T_Scene_Device.rotation().to_matrix() @ user_velocity_device)) # rotated velocity
-#         log_vector(rr, "debugging_velocity_2d", np.array([0,0,0]), np.array([(T_Scene_Device.rotation().to_matrix() @ user_velocity_device)[0], 0, (T_Scene_Device.rotation().to_matrix() @ user_velocity_device)[2]]))
-#         log_vector(rr, "debugging_device_velocity", user_ema_position,  (T_Scene_Device @ user_velocity_device)[:,0])
-
-#         # CAMERA Z-AXIS ONLY ROTATION TO SCENE
-#         cam_z_axis_rotation = (T_Scene_Cam.rotation().to_matrix() @ cam_z_axis)[:,0]
-#         cam_z_axis_rotation_xz =  np.array([cam_z_axis_rotation[0], 0, cam_z_axis_rotation[2]]) 
-#         log_vector(rr, "origin_camera_z_axis_rotation_only", np.array([0,0,0]), cam_z_axis_rotation)
-#         log_vector(rr, "origin_camera_z_axis_rotation_only_xz", np.array([0,0,0]), cam_z_axis_rotation_xz)
-#         log_vector(rr, "origin_camera_z_axis", np.array([0,0,0]), cam_z_axis_scene)
-
-#         # CAMERA
-#         log_vector(rr, "camera_x_axis", camera_position_scene[0], cam_x_axis_scene)
-#         log_vector(rr, "camera_y_axis", camera_position_scene[0], cam_y_axis_scene)
-#         log_vector(rr, "camera_z_axis", camera_position_scene[0], cam_z_axis_scene)
-
-#         # WORLD
-#         log_vector(rr, "world_x_axis", np.array([0,0,0]), world_x_axis)
-#         log_vector(rr, "world_y_axis", np.array([0,0,0]), world_y_axis)
-#         log_vector(rr, "world_z_axis", np.array([0,0,0]), world_z_axis)
+                    #         # OBJECT DISTANCE AND DISPLACEMENT
+                    #         log_vector(rr, f"debugging_distance_user_{object_name}", user_ema_position, filtered_obj_positions_scene[index][0])      # line from user to object
+                    #         log_vector(rr, f"debugging_distance_displacement_{object_name}", np.array([0,0,0]), displacement_vector_xyz)             # line from orgin with same direction and magnitude as from user to object
+                    #         log_vector(rr, f"debugging_distance_displacement_{object_name}_xz", np.array([0,0,0]) , displacement_vector_xz)
+                    #         log_vector(rr, f"debugging_distance_unit_displacement_{object_name}", np.array([0,0,0]) , displacement_unit_vector_xyz)
+                    #         log_vector(rr, f"debugging_distance_unit_displacement_{object_name}_xz", np.array([0,0,0]) , displacement_unit_vector_xz)
+                            
+                    #         # PROJECTED VELOCITY
+                    #         log_vector(rr, "debugging_projected_velocity", np.array([0,0,0]), projected_velocity_xyz) 
+                    #         log_vector(rr, "debugging_projected_velocity_xz_v1", np.array([0,0,0]), projected_velocity_xz_v1) 
+                    #         log_vector(rr, "debugging_projected_velocity_xz_v2", np.array([0,0,0]), projected_velocity_xz_v2) 
+                            
+                    #         # VELOCITY
+                    #         log_vector(rr, "debugging_velocity", np.array([0,0,0]),  (T_Scene_Device.rotation().to_matrix() @ user_velocity_device)) # rotated velocity
+                    #         log_vector(rr, "debugging_velocity_2d", np.array([0,0,0]), np.array([(T_Scene_Device.rotation().to_matrix() @ user_velocity_device)[0], 0, (T_Scene_Device.rotation().to_matrix() @ user_velocity_device)[2]]))
+                    #         log_vector(rr, "debugging_device_velocity", user_ema_position,  (T_Scene_Device @ user_velocity_device)[:,0])
+                            
+                    #         # CAMERA Z-AXIS ONLY ROTATION TO SCENE
+                    #         cam_z_axis_rotation = (T_Scene_Cam.rotation().to_matrix() @ cam_z_axis)[:,0]
+                    #         cam_z_axis_rotation_xz =  np.array([cam_z_axis_rotation[0], 0, cam_z_axis_rotation[2]]) 
+                    #         log_vector(rr, "origin_camera_z_axis_rotation_only", np.array([0,0,0]), cam_z_axis_rotation)
+                    #         log_vector(rr, "origin_camera_z_axis_rotation_only_xz", np.array([0,0,0]), cam_z_axis_rotation_xz)
+                    #         log_vector(rr, "origin_camera_z_axis", np.array([0,0,0]), cam_z_axis_scene)
+                            
+                    #         # CAMERA
+                    #         log_vector(rr, "camera_x_axis", camera_position_scene[0], cam_x_axis_scene)
+                    #         log_vector(rr, "camera_y_axis", camera_position_scene[0], cam_y_axis_scene)
+                    #         log_vector(rr, "camera_z_axis", camera_position_scene[0], cam_z_axis_scene)
+                            
+                    #         # WORLD
+                    #         log_vector(rr, "world_x_axis", np.array([0,0,0]), world_x_axis)
+                    #         log_vector(rr, "world_y_axis", np.array([0,0,0]), world_y_axis)
+                    #         log_vector(rr, "world_z_axis", np.array([0,0,0]), world_z_axis)
                     
                     
 """
@@ -2240,73 +2240,34 @@ plot functions
 
 
 """
-async retry
+parameters combination 
 """
 
-# def retry_with_exponential_backoff(
-#     initial_delay: float = 1,
-#     exponential_base: float = 2,
-#     jitter: bool = True,
-#     max_retries: int = 10,
-#     errors: tuple = (
-#         APIStatusError,
-#         RateLimitError,
-#         Timeout,
-#     ),
-# ):
-#     def decorator(func):
-#         def wrapper(*args, **kwargs):
-#             num_retries = 0
-#             delay = initial_delay
 
-#             while True:
-#                 try:
-#                     return func(*args, **kwargs)
-#                 except errors as e:
-#                     num_retries += 1
-#                     if num_retries > max_retries:
-#                         print(f"Maximum retries ({max_retries}) exceeded.")
-#                         raise
+# # Parameters for the language model module
+# time_thresholds = [2] # [1, 2, 3, 4, 5]                        # Time (in seconds) before interaction to activate the LLM
+# avg_dot_threshold_highs = [0.7]                          # Filter objects: keep only those with an average dot product above this value
+# avg_dot_threshold_lows = [0.2]                           # Filter objects: keep only those with an average dot product above this minimum value
+# avg_distance_threshold_highs = [3]                       # Filter objects: keep only those with an average distance below this value
+# avg_distance_threshold_lows = [1]                        # Filter objects: keep only those with an average distance above this minimum value
 
-#                     delay_with_jitter = delay * (1 + jitter * random.random())
-#                     print(f"Error: {e}. Retrying in {delay_with_jitter:.2f} seconds.")
-#                     time.sleep(delay_with_jitter)
-#                     delay *= exponential_base
-#                 except Exception as e:
-#                     raise e
-#         return wrapper
-#     return decorator
+# high_dot_thresholds = [0.7, 0.8, 0.9]                    # Count objects with dot product values exceeding this threshold
+# distance_thresholds = [1, 1.5, 2]                        # Count objects with distance values below this threshold
+# high_dot_counters_threshold = [45] # [15, 30, 45, 60, 75, 90]   # Keep objects that exceed this count for dot product values above the threshold
+# distance_counters_threshold = [60] # [15, 30, 45, 60, 75, 90]   # Keep objects that exceed this count for distance values below the threshold
+
+# variables_window_times = [3.0]                           # Sliding time window (in seconds) for tracking these parameters
+
+# # Parameters for the LLM reactivation module
+# minimum_time_deactivated = [2.0]                         # Minimum time (in seconds) the LLM remains deactivated after querying
+# maximum_time_deactivated = [5.0]                         # Maximum time (in seconds) before the LLM is activated again after querying
+# user_relative_movement = [2.0]                           # Threshold for user's relative movement (distance) after LLM is queried
+# object_percentage_overlap = [0.7]                        # Percentage of overlap required for objects near the user to trigger reactivation
 
 """
-run async processes 
+helper for decorator
 """
 
-# def process_param_combinations(params_batch, result_queue, data):
-#     async def run_all_tasks():
-#         # Create tasks for each parameter combination in the batch
-#         tasks = [run_algorithm_async(params, result_queue, data) for params in params_batch]
-#         await asyncio.gather(*tasks)
-
-#     # Run the asyncio loop in each process
-#     asyncio.run(run_all_tasks())
-
-# def process_param_combinations(params_batch, data, rate_limiter):
-#     async def run_all_tasks():
-#         # Create tasks for each parameter combination in the batch
-#         tasks = [run_algorithm_async(params, data, rate_limiter) for params in params_batch]
-#         await asyncio.gather(*tasks)
-
-#     # Run the asyncio loop in each process
-#     asyncio.run(run_all_tasks())
-
-# # This function runs execute_algorithm asynchronously for each parameter combination
-# async def run_algorithm_async(parameters, data, rate_limiter):
-#     await execute_algorithm(parameters, data, rate_limiter)
-
-
-"""
-retry_with_exponential_backoff
-"""
 # def retry_with_exponential_backoff(
 #     initial_delay: float = 1,
 #     exponential_base: float = 2,
@@ -2339,259 +2300,3 @@ retry_with_exponential_backoff
 #                     raise e
 #         return wrapper
 #     return decorator
-
-# # @sleep_and_retry
-# # @limits(calls=500, period=ONE_MINUTE) # this is used if I don't want to use the custom function. 
-
-"""
-save results
-"""
-
-# def save_results(objects_possibility_dict, rationale_dict, predictions_dict, goals_dict, project_path, sequence_path, parameter_folder_name):
-#     # Define the path for saving results
-#     results_folder = os.path.join(project_path, 'results', sequence_path, parameter_folder_name)
-#     os.makedirs(results_folder, exist_ok=True)
-
-#     # Combine the results into a single dictionary structure
-#     results_data = {
-#         "objects_possibility_dict": objects_possibility_dict,
-#         "rationale_dict": rationale_dict,
-#         "predictions_dict": predictions_dict,
-#         "goals_dict": goals_dict
-#     }
-
-#     # Save the combined data as a JSON file for this specific parameter configuration
-#     results_file_path = os.path.join(results_folder, f'results_{parameter_folder_name}.json')
-#     with open(results_file_path, 'w') as result_file:
-#         json.dump(results_data, result_file, indent=4)
-    
-#     print(f"Results saved in {results_file_path}")
-
-
-"""
-change of pose - object ground truth 
-"""
-
-# # Create a unique key for each movement period based on object name and the last recorded start time
-# if name not in movement_time_dict:
-#     # Initialize a new movement period for the object
-#     unique_key = f"{name}_{current_time_s}"
-#     user_object_position[unique_key] = [np.array([user_ema_position[0], 0, user_ema_position[2]])]
-#     user_object_movement[unique_key] = 0
-#     movement_time_dict[name] = {"start_time": current_time_s, "end_time": None}
-# else:
-#     # Update the existing movement period's end time if the object is already moving
-#     last_entry_key = list(user_object_position.keys())[-1]  # Get the last key for the current object
-#     if last_entry_key.startswith(name):
-#         user_object_position[last_entry_key].append(np.array([user_ema_position[0], 0, user_ema_position[2]]))
-#         movement_vector_xz = user_object_position[last_entry_key][-1] - user_object_position[last_entry_key][-2]
-#         user_object_movement[last_entry_key] += np.linalg.norm(movement_vector_xz)
-#         movement_time_dict[name]["end_time"] = current_time_s
-#     else:
-#         # Start a new movement period if the object has stopped and started again
-#         unique_key = f"{name}_{current_time_s}"
-#         user_object_position[unique_key] = [np.array([user_ema_position[0], 0, user_ema_position[2]])]
-#         user_object_movement[unique_key] = 0
-#         movement_time_dict[name] = {"start_time": current_time_s, "end_time": None}
-
-# # Add to the original objects that moved dictionary if it's a new period
-# if name not in previous_moved_names or last_entry_key != unique_key:
-#     original_objects_that_moved_dict[current_time_s] = name
-#     previous_moved_names.append(name)
-#     indexes_of_objects_that_moved.append(indexes_activation[i])
-#     print(f"\tObjects that have been moved so far: {original_objects_that_moved_dict}")
-#     print(f"\tUser motion while aforementioned object is moving: {user_object_movement}")
-
-#  for i, (name, index) in enumerate(zip(objects_that_moved_names, indexes_activation)):
-                
-#                 """
-#                 1. loop over the objects that moved based on pose change and the list of respective indexes calculated from the object names list 
-#                 2. store the distance of the user from the object
-#                 3. store the position of the user and the movement of the user for the object that has been moved 
-#                 4. check if in the previous step the object has been moved in order to avoid insert it in the dictionary original_objects_that_moved_dict  
-#                 """
-#                 # work with the ground truth 
-#                 if name not in user_object_movement:
-#                     user_object_position[name] = np.array([user_ema_position[0], 0, user_ema_position[2]]) 
-#                     user_object_movement[name] = 0
-#                 else:
-#                     user_object_position[name].append(np.array([user_ema_position[0], 0, user_ema_position[2]])) # only xz plane
-#                     movement_vector_xz = user_object_position[name][-1] - user_object_position[name][-2]
-#                     user_object_movement[name] += np.linalg.norm(movement_vector_xz) 
-
-#                 # fill the ground truth 
-#                 if name not in previous_moved_names:
-#                     original_objects_that_moved_dict[current_time_s] = name
-#                     previous_moved_names = objects_that_moved_names 
-#                     indexes_of_objects_that_moved.append(indexes_activation[i])
-#                     print(f"\tObjects that have been moved so far: {original_objects_that_moved_dict}")
-#                     print(f"\tUser motion while aforementioned object is moving: {user_object_movement}")
-
-#                 # Track the start and end times of the object movement
-#                 if name not in movement_time_dict:
-#                     movement_time_dict[name] = {"start_time": current_time_s, "end_time": None} # Me: Object starts moving, record the start time
-#                 else:
-#                     movement_time_dict[name]["end_time"] = current_time_s                       # Me: Object is already moving, update the end time
-
-#                 # Track the start and end times of object movement
-#                 if name not in movement_time_dict_list:
-#                     # Initialize with start times
-#                     movement_time_dict_list[name] = {"start_times": [current_time_s], "end_times": []}
-#                 else:
-#                     # Append a new start time if the last recorded movement is complete
-#                     if len(movement_time_dict_list[name]["end_times"]) == len(movement_time_dict_list[name]["start_times"]):
-#                         movement_time_dict_list[name]["start_times"].append(current_time_s)
-
-#         # Separate loop to handle end times for objects no longer moving
-#         for name in movement_time_dict_list:
-#             if name not in objects_that_moved_names:
-#                 # Append the end time if the object has stopped moving and it hasn't been recorded yet
-#                 if len(movement_time_dict_list[name]["end_times"]) < len(movement_time_dict_list[name]["start_times"]):
-#                     movement_time_dict_list[name]["end_times"].append(current_time_s)
-
-"""
-Parameter combinations
-"""
-
-# time_thresholds = [2] # [1, 2, 3]                       
-# avg_dot_threshold_highs = [0.7]                         
-# avg_dot_threshold_lows = [0.2]                          
-# avg_distance_threshold_highs = [3]                       
-# avg_distance_threshold_lows = [1]                       
-# high_dot_thresholds = [0.7, 0.8, 0.9]                 # [0.5, 0.6, 0.7, 0.8, 0.9]                 
-# distance_thresholds = [1.5, 2, 2.5]                        
-# high_dot_counters_threshold = [15, 30, 45, 60, 75, 90]  
-# distance_counters_threshold = [15, 30, 45, 60, 75, 90]  
-# variables_window_times = [3.0]                          
-# minimum_time_deactivated = [2.0]                        
-# maximum_time_deactivated = [5.0]                        
-# user_relative_movement = [2.0]                          
-# object_percentage_overlap = [0.7]           
-
-# time_thresholds = [1.5] # [3, 4, 5, 6]
-# avg_dot_threshold_highs = [0.7]
-# avg_dot_threshold_lows = [0.2]
-# avg_distance_threshold_highs = [3]
-# avg_distance_threshold_lows = [1]
-# high_dot_thresholds = [0.7, 0.8, 0.9] # [0.6, 0.7, 0.8, 0.9, 0.95]
-# distance_thresholds = [1.5, 2, 2.5]   # [1, 1.5, 2, 2.5, 3, 3.5] 
-# high_dot_counters_threshold = [15, 30, 45, 60, 75, 90] # [60, 75] 
-# distance_counters_threshold = [15, 30, 45, 60, 75, 90] # [30] 
-# variables_window_times = [3.0]
-# minimum_time_deactivated = [2.0] # [1.0 ,2.0, 3.0]
-# maximum_time_deactivated = [5.0] # [3.0, 5.0, 6.0] 
-# user_relative_movement = [2.0] # [1.0, 2.0, 3.0]
-# object_percentage_overlap = [0.7]
-
-# time_thresholds = [1.5] # [3, 4, 5, 6]
-# avg_dot_threshold_highs = [0.7]
-# avg_dot_threshold_lows = [0.2]
-# avg_distance_threshold_highs = [3]
-# avg_distance_threshold_lows = [1]
-# high_dot_thresholds = [0.9, 0.95]
-# distance_thresholds = [1.5 , 3] # [1.5, 2, 2.5]
-# high_dot_counters_threshold = [60, 75] #, 90] # [15, 30, 45, 
-# distance_counters_threshold = [30] # [15, 30, 45] #, 60, 75, 90]
-# variables_window_times = [3.0]
-# minimum_time_deactivated = [1.0 ,2.0, 3.0]
-# maximum_time_deactivated = [3.0, 5.0, 6.0] 
-# user_relative_movement = [1.0, 2.0, 3.0]
-# object_percentage_overlap = [0.7]
-
-
-"""
-correspondacnes algorithm
-"""
-
-# # Initialize variables
-# llm_times = sorted(map(float, self.llm_predictions.keys()))
-# gt_times  = sorted(map(float, self.ground_truth.keys()))
-
-# # Create the iterator for ground truth times
-# gt_iter = iter(gt_times)
-# current_gt_time = next(gt_iter, None)
-# next_gt_time = next(gt_iter, None)
-
-# # Iterate through the LLM predictions
-# for i, current_llm_time in enumerate(llm_times):
-
-#     # Get the next LLM time
-#     next_llm_time = llm_times[i + 1] if i + 1 < len(llm_times) else None
-
-#     # In the case that we have more LLM predictions but no gt values --> means we don't have  
-#     if current_gt_time is None: 
-#         self.Fp_out +=1
-#         self.total_llm_predictions +=1
-#         continue
-
-#     # In the case current gt is less than current llm and next gt is None --> means that current LLM falsely activated
-#     if current_gt_time is not None and next_gt_time is None and current_gt_time < current_llm_time:
-#         self.Fp_out += 1               # is Fp_out for current_llm_time or Fn for current Fn
-#         self.total_llm_predictions +=1 # added 2/12
-#         current_gt_time = next_gt_time
-#         next_gt_time = next(gt_iter, None)
-#         continue
-
-#     # Check if the ground truth time is before the first LLM prediction
-#     while current_gt_time is not None and next_gt_time is not None and current_gt_time < current_llm_time:
-#         self.Fn += 1  # No LLM activation before the ground truth
-#         current_gt_time = next_gt_time
-#         next_gt_time = next(gt_iter, None)
-
-#     # Check if two consecutive LLM times occur before the current ground truth time
-#     if current_gt_time is not None and next_llm_time is not None and next_llm_time < current_gt_time:
-#         self.Fp_out += 1  # False positive: as current LLM prediction does not correspond to any ground truth
-#         self.total_llm_predictions +=1
-#         continue
-
-#     # Check if the current LLM corresponds to the current or next two ground truths
-#     if current_gt_time is not None and current_llm_time <= current_gt_time:
-#         time_diff = next_gt_time - current_gt_time if next_gt_time is not None else float('inf')
-
-#         matched_ground_truths = []
-
-#         # Option 1: next LLM time is larger than next ground truth time so 1 LLM prediction for 2 ground truths or 1gt and 1Fn
-#         if next_llm_time is not None and next_gt_time is not None and next_llm_time > next_gt_time:
-#             matched_ground_truths.append((current_gt_time, self.ground_truth[current_gt_time]))
-#             self.total_llm_predictions +=1
-#             current_gt_time = next_gt_time
-#             next_gt_time = next(gt_iter, None)
-
-#             # Either it's a missed prediction (false negative) --> for the next gt there is no LLM prediction
-#             if time_diff > 1:
-#                 # for current gt there is a llm
-#                 self.correspondences.append((current_llm_time, self.llm_predictions[current_llm_time], matched_ground_truths))
-#                 # for next gt there is not llm (as next llm > next gt)
-#                 self.Fn += 1
-#                 current_gt_time = next_gt_time     # added 2/12
-#                 next_gt_time = next(gt_iter, None) # added 2/12
-
-#             # Or it refers to two ground truth events
-#             if time_diff <= 1:
-#                 matched_ground_truths.append((current_gt_time, self.ground_truth[current_gt_time]))
-#                 self.correspondences.append((current_llm_time, self.llm_predictions[current_llm_time], matched_ground_truths))
-#                 self.total_llm_predictions +=1
-#                 current_gt_time = next_gt_time
-#                 next_gt_time = next(gt_iter, None)
-    
-#         # Option 2: Next LLM time is smaller than next ground truth time
-#         elif next_llm_time is not None and next_gt_time is not None and next_llm_time <= next_gt_time:
-#             matched_ground_truths.append((current_gt_time, self.ground_truth[current_gt_time]))
-#             self.correspondences.append((current_llm_time, self.llm_predictions[current_llm_time], matched_ground_truths))
-#             self.total_llm_predictions +=1
-#             current_gt_time = next_gt_time
-#             next_gt_time = next(gt_iter, None)
-
-#         # Option 3: Next ground truth time is None
-#         elif next_llm_time is not None and next_gt_time is None:
-#             matched_ground_truths.append((current_gt_time, self.ground_truth[current_gt_time]))
-#             self.correspondences.append((current_llm_time, self.llm_predictions[current_llm_time], matched_ground_truths))
-#             self.total_llm_predictions +=1
-#             current_gt_time = next_gt_time
-#             next_gt_time = next(gt_iter, None)
-
-# # After the LLM loop ends, handle remaining ground truth times
-# while current_gt_time is not None:
-#     self.Fn += 1  # False negative: LLM did not predict while ground truth remains
-#     current_gt_time = next_gt_time
-#     next_gt_time = next(gt_iter, None)

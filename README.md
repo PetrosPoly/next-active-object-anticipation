@@ -81,32 +81,35 @@ separately (it is **not** included in this repo). Follow the official instructio
 <https://facebookresearch.github.io/projectaria_tools/docs/open_datasets/aria_digital_twin_dataset/>
 
 Each sequence folder should contain `video.vrs`, `aria_trajectory.csv`, and the ADT
-ground-truth files. Point the pipeline to it via configuration (see below).
+ground-truth files. `--sequence_path` is the full path to that folder.
 
 ## Usage
 
 ```bash
+cd src
+
 # 1. Generate ground truth (objects that moved + timings) for a sequence
-python src/gt.py --sequence_path Apartment_release_clean_seq150_M1292
+python gt.py --sequence_path /path/to/Apartment_release_clean_seq150_M1292
 
 # 2. Run the anticipation pipeline (with LLM predictions)
-python src/main.py --sequence_path Apartment_release_clean_seq150_M1292 --use_llm
+python main.py --sequence_path /path/to/Apartment_release_clean_seq150_M1292 --use_llm
 
 # 3. Evaluate predictions against ground truth
-python src/results_parallel.py
+python results_parallel.py
 ```
 
 Outputs are written per parameter combination as
 `large_language_model_{prediction,possibilities,rationale,goals}.json`.
 
-> **Note on configuration:** dataset and project paths are set in `configs/` /
-> environment variables (see [Configuration](#configuration)) rather than hardcoded.
-
 ## Configuration
 
-Activation behaviour is controlled by a small set of thresholds (gaze/proximity
-consistency, time-to-approach, sliding-window length, LLM re-activation timing).
-These are documented in `configs/default.yaml`.
+- **Paths** — `src/config.yaml` holds `project_path` (used to locate prompts, logs and
+  ground-truth files). Leave it empty to auto-resolve to the `src/` directory, or set
+  the `PROJECT_ROOT` environment variable. No absolute paths are hardcoded.
+- **Activation thresholds** — gaze/proximity consistency, time-to-approach, sliding-window
+  length and LLM re-activation timing are defined at the top of `src/main.py`
+  (and documented for reference in `configs/default.yaml`).
+- **LLM prompts** — the prompt template lives in `src/utils/txt_files/prompts.txt`.
 
 ## Repository structure
 
@@ -114,19 +117,27 @@ These are documented in `configs/default.yaml`.
 src/
 ├── main.py                     # entry point: per-frame perception + LLM activation
 ├── gt.py                       # ground-truth generation
+├── config.yaml                 # path configuration (auto-resolving)
+├── results.py                  # evaluation
+├── results_parallel.py         # batch evaluation
 ├── utils/
 │   ├── stats.py                # sliding-window stats, time-to-approach
-│   ├── tools.py                # geometry helpers (visibility, transforms, EMA)
-│   ├── openai_models*.py       # LLM prediction backends (sync / async / parallel)
+│   ├── tools.py                # geometry helpers (visibility, transforms, EMA, config)
+│   ├── openai_models_work.py   # LLM prediction backend (OpenAI)
+│   ├── llama.py                # alternative Llama backend
 │   ├── evaluation.py           # metrics
 │   ├── objectsGroup_user.py    # area-change detection for LLM re-activation
-│   └── rate_limit.py           # API rate limiting
+│   ├── object_detection.py     # object helpers
+│   ├── rate_limit.py           # API rate limiting
+│   └── txt_files/prompts.txt   # LLM prompt template
 ├── visualization/rr.py         # rerun.io 3D visualization
-└── results_parallel.py         # batch evaluation
-docs/                           # architecture + result plots
-notebooks/                      # analysis notebooks
-configs/                        # pipeline parameters
+└── helpers/                    # Excel debug logging
+docs/                           # architecture + result plots + demo.gif
+configs/                        # reference parameter values
 ```
+
+> The full set of experimental scripts, alternative LLM backends and analysis
+> notebooks from development is preserved on the [`raw-sep2025`](https://github.com/PetrosPoly/next-active-object-anticipation/tree/raw-sep2025) branch.
 
 ## Built on / Acknowledgements
 

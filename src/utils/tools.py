@@ -1,7 +1,8 @@
 import numpy as np
 
 from projectaria_tools.core.sophus import SE3
-     
+import os
+import yaml
 import logging
 
 # Function to transform points using SE3
@@ -13,6 +14,34 @@ def transform_point(se3: SE3, point: np.ndarray) -> np.ndarray:
         point = point.reshape(3, 1)             # Me: Reshape to [3, 1]
     transformed_point = se3 @ point             # Me; Apply transformation
     return transformed_point.T                  # Me: Transpose back to [1, 3] if necessary
+
+# Load configuration from a YAML file
+def load_config(config_path=None):
+    """
+    Load configuration from a YAML file.
+    If no path is provided, it defaults to 'config.yaml' in the parent directory of the script.
+    """
+    if config_path is None:
+        # Get the directory of the current script
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        # Construct the path to config.yaml in the parent directory
+        config_path = os.path.join(script_dir, "../config.yaml")
+    
+    if not os.path.exists(config_path):
+        raise FileNotFoundError(f"Configuration file not found at {config_path}")
+    
+    with open(config_path, 'r') as file:
+        config = yaml.safe_load(file)
+
+    # Resolve project_path: env override > config value > directory of config.yaml.
+    # Defaulting to the config's own directory makes the repo runnable after a
+    # plain `git clone` without editing absolute paths.
+    project_path = os.environ.get("PROJECT_ROOT") or config.get("project_path") or ""
+    project_path = os.path.expanduser(project_path)
+    if not project_path or not os.path.isdir(project_path):
+        project_path = os.path.dirname(os.path.abspath(config_path))
+    config["project_path"] = project_path
+    return config
 
 def user_movement_calculation(user_position_before, user_position_current):
     """
@@ -64,7 +93,7 @@ def visibility_mask(obj_positions_cam_reshaped, rgb_camera_calibration):
             # projected_points.append(pixel_coord.squeeze())
             valid_mask.append(True)
         else:
-            valid_mask.append(False)
+            valid_mask.append(False) # valid_mask.append(False)  should be changed to False if you wamt mask to be applied. 
     # projected_points = np.array(projected_points)
     valid_mask = np.array(valid_mask)
     return valid_mask

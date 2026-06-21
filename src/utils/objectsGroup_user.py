@@ -44,7 +44,7 @@ class ObjectGroupAnalyzer:
         
         # if the history and the future haven't collect the amount of data necessary for comparisons
         if len(self.history) < self.history_size or len(self.future) < self.future_size: 
-            # print("Collecting data...")     # waiting to collect objects 
+            print("Collecting data...")     # waiting to collect objects 
             return False
 
         # Take the union of the history and the future and then the set which gives the unique values 
@@ -87,10 +87,10 @@ class ObjectGroupAnalyzer:
     
     def check_if_user_changed_area(self, result_objects, result_movement):
         if result_objects or result_movement:
-            # print ("User is moving to a different area. LLM can be activate again")
+            print ("User is moving to a different area. LLM can be activate again")
             return True
         else:
-            # print("User is on the same area, Keep LLM stable")
+            print("User is on the same area, Keep LLM stable")
             return False
         
     def user_move(self, user_movement):
@@ -156,3 +156,5 @@ def group_object_with_kmeans(obj_positions):
     # Output the result
     for i, approaching in enumerate(approaches):
         print(f"User is approaching group {i+1}: {approaching}")
+
+

@@ -84,7 +84,7 @@ def main():
     sequence_path = args.sequence_path             
     
     # Dataset path
-    datasets_path = os.environ.get("ADT_DATA_PATH", os.path.join(project_path, "data", "adt"))
+    datasets_path = 'Documents/projectaria_tools_adt_data/'
     dataset_folder = os.path.join(datasets_path, sequence_path)
     os.makedirs(dataset_folder, exist_ok=True)                      
     
@@ -145,7 +145,6 @@ def main():
     T_scene_object_before = None                                                    # Me: Objects' poses to check a relative transformation between poses for each round
     original_objects_that_moved_dict = {}                                           # Me: Dict --keys: time of movement   --values: object name 
     movement_time_dict = {}                                                         # Me: Dict --keys: objects that moved --values: start/end time of movement
-    movement_time_dict_list = {}
     indexes_of_objects_that_moved = []                                              # Me: List --indexes of the objects that moved (index from a list of all objects in the sequence)
     previous_moved_names = []                                                       # Me: List --objects that previously moved
     distances = {}                                                                  # Me: Dict --keys: names of objects in motion -- values: a list with the distances of object from the user 
@@ -153,13 +152,9 @@ def main():
     # Users motion based on each movement with 
     user_velocity_before = None                                                     # Me: Initialize previous velocity
     user_position_before = None                                                     # Me: Calculate the user's position
-
-    moving_objects = {}         # Tracks objects currently moving with their movement number
-    movement_counter = {}       # Counts the number of movement periods per object
-    user_object_movement = {}   # Stores total movement per movement period
-    user_object_position = {}   # Stores positions per movement period
-
-
+    user_object_position = {}                                                       # User's position when a specific object is inside a radius of 1.5 meters 
+    user_object_movement = {}                                                       # User's distance from initial position
+    
     print("Variables have been initialized")
     
     # For loop from the start of the time till the end of it
@@ -268,7 +263,7 @@ def main():
         norm_relative_T_object, T_scene_object_before = calculate_relative_pose_difference(T_scene_object_before, T_scene_object)
 
         # Find the object indexes that satisfy your condition for potential interaction 
-        indexes_activation = np.where((norm_relative_T_object) > 0.008)[0] # 4mm
+        indexes_activation = np.where((norm_relative_T_object) > 0.004)[0] # 4mm
         
         # If Condition to check interaction took place (apart from norm of relative transformation need to check also the distance which should be relative close)
         if indexes_activation.size > 0: 
@@ -327,7 +322,7 @@ def main():
         json.dump(user_object_movement, json_file)
     
     end_time = time.time()
-
+            
     # ==============================================
     # Prints
     # ==============================================  
@@ -338,4 +333,4 @@ def main():
 if __name__ == "__main__":
     main()
 
- 
+
