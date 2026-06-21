@@ -71,7 +71,14 @@ def main():
     # algorithm outputs
     preds = load_json(os.path.join(args.predictions, "large_language_model_prediction.json"), {})
     goals = load_json(os.path.join(args.predictions, "large_language_model_goals.json"), {})
-    moved = load_json(os.path.join(args.sequence, "objects_that_moved.json"), {})
+    # objects_that_moved.json lives under results/gt/<seq> (or the sequence folder).
+    _repo = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    _name = os.path.basename(os.path.normpath(args.sequence))
+    _moved_path = next((p for p in [
+        os.path.join(_repo, "results", "gt", _name, "objects_that_moved.json"),
+        os.path.join(args.sequence, "objects_that_moved.json"),
+    ] if os.path.exists(p)), os.path.join(args.sequence, "objects_that_moved.json"))
+    moved = load_json(_moved_path, {})
     pred_times = sorted(float(k) for k in preds)
     moved_times = sorted((float(k), v) for k, v in moved.items())
 

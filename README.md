@@ -165,12 +165,17 @@ src/
 ├── visualization/rr.py         # rerun.io 3D visualization
 └── helpers/                    # Excel debug logging
 tools/make_algorithm_video.py   # render the explainer video from predictions
-data/adt/                       # ADT sequences (downloaded; gitignored)
+data/adt/<seq>/                 # ADT sequences — dataset ONLY (downloaded; gitignored)
+results/                        # generated outputs (NOT in data/)
+├── gt/<seq>/                   #   ground-truth JSONs from gt.py
+└── predictions/<seq>/<params>/ #   LLM prediction JSONs from main.py
 docs/                           # architecture, result plots, demo.gif, algorithm_demo.mp4
 configs/                        # reference parameter values
 pyproject.toml / uv.lock        # uv-managed environment
 .venv/                          # local environment (gitignored)
 ```
+
+> `data/` holds only the raw dataset; everything the pipeline generates goes to `results/`.
 
 > The full set of experimental scripts, alternative LLM backends and analysis
 > notebooks from development is preserved on the [`raw-sep2025`](https://github.com/PetrosPoly/next-active-object-anticipation/tree/raw-sep2025) branch.

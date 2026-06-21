@@ -215,6 +215,7 @@ for parameters in param_combinations: # TODO parallel 4 loop
         # Base folder path for saving predictions
         config = load_config()
         project_path = os.path.expanduser(config["project_path"])
+        repo_root = os.path.dirname(project_path)          # outputs go under <repo>/results/
         sequence_path = args.sequence_path
 
         print ("Sequence path: ", sequence_path)
@@ -372,7 +373,7 @@ for parameters in param_combinations: # TODO parallel 4 loop
         # so try the project gt folder first, then the sequence folder itself.
         _seq_name = os.path.basename(os.path.normpath(args.sequence_path))
         _gt_candidates = [
-            os.path.join(project_path, 'data', 'gt', _seq_name, 'movement_time_dict.json'),
+            os.path.join(repo_root, 'results', 'gt', _seq_name, 'movement_time_dict.json'),
             os.path.join(args.sequence_path, 'movement_time_dict.json'),
         ]
         gt_file = next((p for p in _gt_candidates if os.path.exists(p)), None)
@@ -1083,7 +1084,7 @@ for parameters in param_combinations: # TODO parallel 4 loop
                         if args.video_out:
                             video_path = os.path.expanduser(args.video_out)
                         else:
-                            tmp_dir = os.path.join(project_path, 'data', 'predictions', os.path.basename(os.path.normpath(sequence_path)), 'tmp')
+                            tmp_dir = os.path.join(repo_root, 'results', 'predictions', os.path.basename(os.path.normpath(sequence_path)), 'tmp')
                             os.makedirs(tmp_dir, exist_ok=True)
                             video_path = os.path.join(tmp_dir, 'preview.mp4')
                         writer = iio.get_writer(video_path, fps=max(1, args.fps), codec='libx264')
@@ -1257,11 +1258,11 @@ for parameters in param_combinations: # TODO parallel 4 loop
         # Store the predictions of the LLM
         # ==============================================  
         
-        # Define the path for saving the predictions. Use the sequence *name*
-        # (not the full path) so outputs go under <project>/data/predictions/
-        # and never overwrite files inside the dataset folder.
+        # Define the path for saving the predictions. Outputs go under
+        # <repo>/results/predictions/<seq_name>/ — data/ stays dataset-only and
+        # the dataset folder is never overwritten.
         _seq_name = os.path.basename(os.path.normpath(sequence_path))
-        predictions_folder = os.path.join(project_path, 'data', 'predictions', _seq_name, parameter_folder_name)
+        predictions_folder = os.path.join(repo_root, 'results', 'predictions', _seq_name, parameter_folder_name)
         os.makedirs(predictions_folder, exist_ok=True)
 
         # Save the predictions to a JSON file
@@ -1286,7 +1287,7 @@ for parameters in param_combinations: # TODO parallel 4 loop
             if 'writer' in locals() and writer is not None:
                 writer.close()
                 if not args.video_out and frame_size is not None:
-                    src_tmp = os.path.join(project_path, 'data', 'predictions', os.path.basename(os.path.normpath(sequence_path)), 'tmp', 'preview.mp4')
+                    src_tmp = os.path.join(repo_root, 'results', 'predictions', os.path.basename(os.path.normpath(sequence_path)), 'tmp', 'preview.mp4')
                     dst_path = os.path.join(predictions_folder, f"preview_{parameter_folder_name}.mp4")
                     os.makedirs(os.path.dirname(dst_path), exist_ok=True)
                     if os.path.exists(src_tmp):

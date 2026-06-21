@@ -12,9 +12,11 @@ datasets/
 # ---- Generated outputs ----
 logs/
 src/logs/
-**/predictions/
 **/utils/json/
 *.xlsx
+# results/: keep the small prediction & ground-truth JSONs, but ignore temp + heavy video
+results/**/tmp/
+results/**/*.mp4
 # Runtime logs/outputs written into txt_files (but KEEP the prompt templates)
 **/txt_files/interaction_log.*
 **/txt_files/predictions.txt
@@ -28,9 +30,6 @@ __pycache__/
 venv/
 env/
 *.ipynb_checkpoints/
-
-# ---- Local-only archive of experimental/legacy variants ----
-archive/
 
 # ---- OS / IDE ----
 .DS_Store

@@ -89,18 +89,19 @@ def main():
     start_time = time.time()
     args = parse_args()
     
-    # Project path
+    # Project path (src/) and repo root.
     project_path = os.environ.get("PROJECT_ROOT", os.path.dirname(os.path.abspath(__file__)))
+    repo_root = os.path.dirname(project_path)
     sequence_path = args.sequence_path
 
     # Dataset folder: accept either a full path to the sequence or a name under
-    # ADT_DATA_PATH (env override; default 'data/adt').
-    datasets_path = os.environ.get("ADT_DATA_PATH", os.path.join(project_path, "data", "adt"))
+    # ADT_DATA_PATH (env override; default <repo>/data/adt). `data/` is dataset-only.
+    datasets_path = os.environ.get("ADT_DATA_PATH", os.path.join(repo_root, "data", "adt"))
     dataset_folder = sequence_path if os.path.isdir(sequence_path) else os.path.join(datasets_path, sequence_path)
 
-    # Ground truth output folder, keyed by the sequence name.
+    # Ground-truth outputs go under <repo>/results/ (never inside data/).
     seq_name = os.path.basename(os.path.normpath(sequence_path))
-    gt_folder = os.path.join(project_path, 'data', 'gt', seq_name)
+    gt_folder = os.path.join(repo_root, 'results', 'gt', seq_name)
     os.makedirs(gt_folder, exist_ok=True)
     
     # Print the paths
