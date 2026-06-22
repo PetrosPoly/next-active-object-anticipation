@@ -151,6 +151,10 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 main_logger = logging.getLogger(__name__)
 
 from experiment_config import build_param_combinations, make_parameter_folder_name
+from perception import (
+    get_visible_objects, compute_scene_axes, compute_dots_and_distances, filter_objects_by_average,
+)
+from activation import evaluate_activation_criteria, check_reactivation
 
 
 def save_predictions(folder, possibilities, rationale, predictions, goals):
@@ -456,128 +460,43 @@ def run_experiment(parameters):
             ## Insert this info in the runio.rr software
             args.runrr and log_device_transformations(rr, p_dev_scene, T_Device_Cam, ToTransform3D) 
         
-        # ==============================================
-        # Objects Poses
-        # ==============================================      
+        # ============================================== Objects + visibility (perception.py)
+        _vo = get_visible_objects(gt_provider, timestamp_ns, T_Scene_Cam, rgb_camera_calibration)
+        bboxes3d = _vo.bboxes3d
+        obj_ids = _vo.obj_ids
+        obj_names = _vo.obj_names
+        obj_positions_scene = _vo.obj_positions_scene
+        T_Cam_Scene = _vo.T_Cam_Scene
+        obj_positions_cam = _vo.obj_positions_cam
+        valid_mask = _vo.valid_mask
+        T_scene_object = _vo.T_scene_object
+        object_ids = visible_obj_ids = _vo.visible_obj_ids
+        visible_obj_names = _vo.visible_obj_names
+        object_positions = visible_obj_positions_scene = _vo.visible_obj_positions_scene
+        visible_obj_positions_cam = _vo.visible_obj_positions_cam
         
-        bbox3d_with_dt = gt_provider.get_object_3d_boundingboxes_by_timestamp_ns(timestamp_ns)
-        assert bbox3d_with_dt.is_valid(), "3D bounding box is not available"
-        bboxes3d = bbox3d_with_dt.data()                                                                                        # Me: Objects data
-
-        # TODO: check where the centroid is located
+        # ============================================== Scene / camera axes (perception.py)
+        _axes = compute_scene_axes(T_Scene_Cam, T_Scene_Device)
+        cam_x_axis_scene = _axes.cam_x_axis_scene
+        cam_y_axis_scene = _axes.cam_y_axis_scene
+        cam_z_axis_scene = _axes.cam_z_axis_scene
+        cam_z_axis_rotation = _axes.cam_z_axis_rotation
+        device_x_axis_scene = _axes.device_x_axis_scene
+        device_y_axis_scene = _axes.device_y_axis_scene
+        device_z_axis_scene = _axes.device_z_axis_scene
+        world_x_axis = _axes.world_x_axis
+        world_y_axis = _axes.world_y_axis
+        world_z_axis = _axes.world_z_axis
         
-        ## Extract object IDs and their positions
-        obj_ids = np.array(list(bboxes3d.keys()))                                                                                # Me: Ids of the objects
-        obj_names = np.array([gt_provider.get_instance_info_by_id(obj_id).name for obj_id in obj_ids])                           # Me: Names of the objects
-        obj_positions_scene = np.array([bbox_3d.transform_scene_object.translation() for bbox_3d in bboxes3d.values()])          # Me: Positions on Scene frame #TODO: maybe add the [0] to take the first elemeent   
-        
-        # ==============================================
-        # Visual Objects in Camera Frame
-        # ==============================================  
-        
-        T_Cam_Scene = T_Scene_Cam.inverse()                                                                               # Me: Transform positions to the camera frame
-        
-        ## Objects in Camera Frame
-        obj_positions_cam = np.array([transform_point(T_Cam_Scene, pos.reshape(1, 3)) for pos in obj_positions_scene])    # Me: Positions on Camera frame
-        obj_positions_cam_reshaped = obj_positions_cam.reshape(-1, 3, 1)                                                  # Me: Prepare positions for projection
-        
-        ## Produce the visible mask to work only with objects that are in the camera frame
-        valid_mask = visibility_mask(obj_positions_cam_reshaped, rgb_camera_calibration)                                  # Me: Produce the Mask
-        
-        ## Take the only poses of the visible objects   
-        T_scene_object = {}
-        for key, (include, value) in zip(bboxes3d.keys(), zip(valid_mask, bboxes3d.values())):                            # Me: Filter the dictionary based on the boolean array
-            if True: # if include: to take only the visible objects
-                T_scene_object[key] = value.transform_scene_object
-        
-        ## Take ids, names, position and distances for the visible objects 
-        object_ids = visible_obj_ids = obj_ids[valid_mask]                                                                # Me: Filter the ids of visible objects
-        visible_obj_names = obj_names[valid_mask]                                                                         # Me: Filter the names of visible objects
-        object_positions = visible_obj_positions_scene = obj_positions_scene[valid_mask]                                  # Me; Filter the positions visible objects in scene 
-        visible_obj_positions_cam = obj_positions_cam[valid_mask]                                                         # Me: Filter the positions visible objects in camera
-        
-        # ==============================================
-        # Camera and Device Axes Transformation in Scene and World Frames
-        # ==============================================  
-        
-        # Device and Camera
-        device_x_axis = cam_x_axis = np.array([1, 0, 0]).reshape(3, 1)
-        device_y_axis = cam_y_axis = np.array([0, 1, 0]).reshape(3, 1)
-        device_z_axis = cam_z_axis = np.array([0, 0, 1]).reshape(3, 1)
-        
-        # CAMERA coordinates in the scene frame (having the traslation into account)
-        cam_x_axis_scene = (T_Scene_Cam @ cam_x_axis).reshape(1,3)[0]  
-        cam_y_axis_scene = (T_Scene_Cam @ cam_y_axis).reshape(1,3)[0]
-        cam_z_axis_scene = (T_Scene_Cam @ cam_z_axis).reshape(1,3)[0] # these value points the end of z axis. so from the origin has an opposite direction to where the user is looking and that's why the dot value is negative
-        
-        # CAMERA coordinates in the scene frame (having the traslation into account)
-        cam_x_axis_rotation = (T_Scene_Cam.rotation().to_matrix() @ cam_x_axis)[:,0]
-        cam_y_axis_rotation = (T_Scene_Cam.rotation().to_matrix() @ cam_y_axis)[:,0]
-        cam_z_axis_rotation = (T_Scene_Cam.rotation().to_matrix() @ cam_z_axis)[:,0]
-        
-        # DEVICE coordinates in the scene frame
-        device_x_axis_scene = (T_Scene_Device @ device_x_axis).reshape(1,3)[0]
-        device_y_axis_scene = (T_Scene_Device @ device_y_axis).reshape(1,3)[0]
-        device_z_axis_scene = (T_Scene_Device @ device_z_axis).reshape(1,3)[0]
-        
-        # WORLD coordinates 
-        world_x_axis = np.array([1,0,0])
-        world_y_axis = np.array([0,1,0])
-        world_z_axis = np.array([0,0,1])
-        
-        # ==============================================
-        # Dot Products - Distances
-        # ==============================================  
-        
-        # VECTORS FROM CAMERA AND DEVICE TO OBJECTS
-        camera_position_scene = T_Scene_Cam.translation()                                                                                    # Me: Camera position in scene
-        vector_camera_objects_scene = obj_positions_scene[:, 0] - camera_position_scene                                     
-        vector_devive_objects_scene = obj_positions_scene[:, 0] - user_position_scene
-        
-        # CALCULATE DOT PRODUCT IN 2D
-        if work_in_xz_plane:
-            
-            # PROJECT VECTORS ONTO XZ PLANE (ignore Y component)
-            vector_camera_objects_scene_xz = np.copy(vector_camera_objects_scene)
-            vector_camera_objects_scene_xz[:, 1] = 0  # Set Y component to 0
-            unit_vector_camera_objects_scene_xz = vector_camera_objects_scene_xz / np.linalg.norm(vector_camera_objects_scene_xz, axis=1, keepdims=True)
-
-            # PROJECT CAMERA Z AXIS ONTO XZ PLANE (ignore Y component)
-            cam_z_axis_rotation_xz = np.copy(cam_z_axis_rotation)
-            cam_z_axis_rotation_xz[1] = 0  # Set Y component to 0
-
-            # Normalize the camera Z axis vector on the XZ plane
-            cam_z_axis_rotation_xz /= np.linalg.norm(cam_z_axis_rotation_xz)
-
-            # DOT PRODUCT IN XZ PLANE
-            dot_products_array = np.dot(unit_vector_camera_objects_scene_xz, cam_z_axis_rotation_xz)
-
-        else:
-            unit_vector_camera_objects_scene = vector_camera_objects_scene / np.linalg.norm(vector_camera_objects_scene, axis=1, keepdims=True)  # Me: Normalize the vectors
-        
-            # DOT PRODUCT
-            dot_products_array = np.dot(unit_vector_camera_objects_scene, cam_z_axis_rotation)                                              
-        
-        all_dot_products = dot_products_array.tolist()                                                                                                 # Me: Dot Product (camera z axis / camera to object vector
-            
-        # DISTANCES 
-        distance_camera_objects_scene = np.linalg.norm(vector_camera_objects_scene, axis=1)                      
-        distance_device_objects_scene = np.linalg.norm(vector_devive_objects_scene, axis=1)
-        all_distances = distance_device_objects_scene.tolist()  
-        
-        # VISIBLE VECTORS FROM CAMERA AND DEVICE TO OBJECTS
-        visible_vector_camera_objects_scene = visible_obj_positions_scene[:, 0] - camera_position_scene                                     
-        visible_vector_devive_objects_scene = visible_obj_positions_scene[:, 0] - user_position_scene
-        visible_unit_vector_camera_objects_scene = visible_vector_camera_objects_scene / np.linalg.norm(visible_vector_camera_objects_scene, axis=1, keepdims=True)  # Me: Normalize the vectors
-
-        # VISIBLE DOT PRODUCT
-        visible_dot_products = dot_products_array[valid_mask]                                        
-        dot_products = visible_dot_products.tolist()   
-        
-        # VISIBLE DISTANCES
-        visible_distance_camera_objects_scene = np.linalg.norm(visible_vector_camera_objects_scene, axis=1)                      
-        visible_distance_device_objects_scene = np.linalg.norm(visible_vector_devive_objects_scene, axis=1)                     
-        distances =  visible_distance_device_objects_scene.tolist()                                                                            # Me: Filter the visible objects in scene
+        # ============================================== Dot products + distances (perception.py)
+        _dd = compute_dots_and_distances(obj_positions_scene, user_position_scene, T_Scene_Cam, cam_z_axis_rotation, valid_mask)
+        camera_position_scene = _dd.camera_position_scene
+        dot_products = _dd.dot_products
+        distances = _dd.distances
+        visible_dot_products = _dd.visible_dot_products
+        visible_vector_camera_objects_scene = _dd.visible_vector_camera_objects_scene
+        visible_distance_camera_objects_scene = _dd.visible_distance_camera_objects_scene
+        visible_distance_device_objects_scene = _dd.visible_distance_device_objects_scene
 
         # ==============================================
         # Time Window - Accumulated / Average Values & Counts
@@ -607,191 +526,41 @@ def run_experiment(parameters):
                                                     T_Scene_Device
                                                 )
 
-        # ==============================================
-        # Filter Visible Objects with Average Values
-        # ==============================================  
+        # ============================================== Filter visible objects by windowed average (perception.py)
+        _fo = filter_objects_by_average(
+            parameters, gt_provider, visible_obj_ids, visible_obj_names,
+            visible_obj_positions_scene, visible_dot_products, visible_distance_device_objects_scene,
+            visible_avg_dots, visible_avg_distances, visible_visibility_duration,
+            visible_high_dot_counts, visible_low_distance_counts, visible_time_to_approach,
+        )
+        filtered_obj_ids = _fo.filtered_obj_ids
+        filtered_obj_names = _fo.filtered_obj_names
+        filtered_obj_positions_scene = _fo.filtered_obj_positions_scene
+        filtered_dot_products = _fo.filtered_dot_products
+        filtered_distances = _fo.filtered_distances
+        filtered_high_dot_counts = _fo.filtered_high_dot_counts
+        filtered_low_distance_counts = _fo.filtered_low_distance_counts
+        filtered_names_high_dot_counts = _fo.filtered_names_high_dot_counts
+        filtered_names_low_distance_counts = _fo.filtered_names_low_distance_counts
+        filtered_names_time_to_approach = _fo.filtered_names_time_to_approach
+        filtered_names_duration = _fo.filtered_names_duration
         
-        # MASK
-        if average == True:
-            
-            # high dot mask and relaxed distance
-            high_dot_mask = np.array([visible_avg_dots[obj_id] > parameters["avg_dot_high"] for obj_id in visible_obj_ids])                      # Me: high dot mask shape for those objects that have high accummulated dot
-            high_distance_mask = np.array([visible_avg_distances[obj_id] < parameters["avg_distance_high"] for obj_id in visible_obj_ids])       # Me: high distance mask
-            
-            # low average dot mask but also low distance
-            low_dot_mask = np.array([visible_avg_dots[obj_id] > parameters["avg_dot_low"] for obj_id in visible_obj_ids])                        # Me: low dot mask
-            low_distance_mask = np.array([visible_avg_distances[obj_id] < parameters["avg_distance_low"] for obj_id in visible_obj_ids])         # Me: low distance mask (because the minimum distace is 0.56 from the object)
-            
-            # combined masks
-            combined_high_high_mask = high_dot_mask & high_distance_mask                                       
-            combined_low_low_mask = low_dot_mask & low_distance_mask                                        
-            combined_mask = combined_high_high_mask | combined_low_low_mask                           
-            
-        else:                                                                                              
-            
-            # high dot mask and relaxed distance
-            high_dot_mask = dot_products > 0.8                                                                      # Me: high dot mask shape is shape (189,) 1D array
-            high_distance_mask = distances < 3                                                                      # Me: high distance mask
-            
-            # low average dot mask but also low distance
-            low_dot_mask = dot_products > 0.2                                                                       # Me: low dot mask 
-            low_distance_mask = distances < 0.9                                                                     # Me: low distance mask (because the minimum distace is 0.56 from the object)
-            
-            # combined masks
-            combined_high_high_mask = high_dot_mask & high_distance_mask                                            # Me: if the distance is high the dot should be high to accept 
-            combined_low_low_mask = low_dot_mask & low_distance_mask                                                # Me: if the dot is low the distance should be low to accept 
-            combined_mask = combined_high_high_mask | combined_low_low_mask
-
-        # IDs, NAMES
-        filtered_obj_ids = visible_obj_ids[combined_mask]
-        filtered_obj_names = visible_obj_names[combined_mask]
-        filtered_vector_camera_objects_scene = visible_vector_camera_objects_scene[combined_mask]
-        
-        # POSITIONS
-        filtered_obj_positions_scene = visible_obj_positions_scene[combined_mask]
-        filtered_obj_positions_cam = visible_obj_positions_cam[combined_mask]
-        
-        # DOT PRODUCTS
-        filtered_dot_products = visible_dot_products[combined_mask]
-        filtered_names_dot = {gt_provider.get_instance_info_by_id(obj_id).name: filtered_dot_products[i] for i, obj_id in enumerate(filtered_obj_ids)} # use it for the excel
-        
-        # DISTANCES 
-        filtered_distances_cam = visible_distance_camera_objects_scene[combined_mask]
-        filtered_distances = visible_distance_device_objects_scene[combined_mask]
-        filtered_names_distances = {gt_provider.get_instance_info_by_id(obj_id).name: filtered_distances[i] for i, obj_id in enumerate(filtered_obj_ids)}   
-        
-        # VISIBILITY COUNTER & DURATION                   
-        filtered_counter = {obj_id: visible_visibility_counter.get(obj_id, deque([(0.0,0)])) for obj_id in filtered_obj_ids}     
-        filtered_duration = {obj_id: visible_visibility_duration.get(obj_id, deque([(0.0,0)])) for obj_id in filtered_obj_ids}
-        
-        # HIGH DOT / LOW DISTANCE / TIME COUNTERS 
-        filtered_high_dot_counts = {obj_id: visible_high_dot_counts[obj_id] for obj_id in filtered_obj_ids if obj_id in visible_high_dot_counts}
-        filtered_low_distance_counts = {obj_id: visible_low_distance_counts[obj_id] for obj_id in filtered_obj_ids if obj_id in visible_low_distance_counts}
-               
-        # ==============================================
-        # Keep the Important Context Information for the feasible objects
-        # ==============================================  
-        
-        # HIGH DOT COUNTS / LOW DISTANCE COUNTS / TIME TO APPROACH- DICTIONARIES {NAME: COUNT}
-        filtered_names_high_dot_counts = {gt_provider.get_instance_info_by_id(obj_id).name: len(visible_high_dot_counts[obj_id]) for obj_id in filtered_obj_ids if obj_id in visible_high_dot_counts}
-        filtered_names_low_distance_counts = {gt_provider.get_instance_info_by_id(obj_id).name: len(visible_low_distance_counts[obj_id]) for obj_id in filtered_obj_ids if obj_id in visible_low_distance_counts}
-        filtered_names_time_to_approach = {gt_provider.get_instance_info_by_id(obj_id).name: visible_time_to_approach[obj_id] for obj_id in filtered_obj_ids} 
-        filtered_names_duration = {gt_provider.get_instance_info_by_id(obj_id).name: filtered_duration[obj_id][-1][1] for obj_id in filtered_obj_ids}
-        
-        # ==============================================
-        # 4 Criteria to enable LLM (1. High dot products duration 2. Low distance duration 3. Time to contact 4. High visibility duration)
-        # ==============================================  
-        """
-        Object with high dot counts 
-
-        1. Initialize dictionaries and lists to be used for the LLM activation 
-            - We want to have objects that presents high dot values consistently 
-            - we want to have objects that are close to the user consistently
-            - We want to have objects that are approachable in less than 2 seconds (this list is a subset of the above list)
-            - We want to have objects that are visible to the user's camera for a significant amount of time over 2 seconds 
-            - We want objects that have shown high dot history in the past 
-        
-        2. Assummption: 
-            - User will interact with objects that are consistently in the user's focus
-            - User will interact with objects that are close to him 
-            - User will interact with objects is close to one of these in less a certain amount of time (e.g. 2 seconds)
-            - User will interact with objects that have been seen consistently (so for this reason we need to add the history)
-            - User will interact with objects that are visible to the user for a certain amount of time 
-            
-        2. Store the objects 
-            - High dot counts > 45 counts or 1.5 seconds than 3
-            - Close distance  < 30 counts or 1 second from than 3
-            - Time to approach
-        """
-        
-        # high dot values & counts
-        high_dot_counts = {}
-        
-        # high dot values & counts but also distance
-        high_dot_counts_but_also_distance = {}
-  
-        # distance values & counts
-        low_distance_counts = {}
-        
-        # distance values & counts
-        low_distance_counts_but_also_high_dot = {}
-        
-        # time to approach dictionaries 
-        time_to_approach_dict = {}  
-        time_to_approach_list = []      
-
-        # Objects with time less than 2 seconds
-        less_than_2_seconds_dict = {}
-        less_than_2_seconds_list = []
-
-        # Objects with time < 2 seconds and count threshold
-        filtered_names_high_dot_counts_and_distance_counts = {}
-        filtered_names_high_dot_counts_and_distance_values = {}
-        
-        filtered_names_low_distance_counts_and_high_dot_counts = {}
-        filtered_names_low_distance_counts_and_high_dot_values = {}
-
-        # High duration objects
-        high_duration_objects = {}
-        
-        # Identify objects in motion using NumPy
-        objects_in_motion = gt_object_names[(gt_start_times <= current_time_s) & (current_time_s <= gt_end_times)].tolist()
-        
-        # Combine the logic for high dot counts and low distance counts into one loop
-        for index, object_id in enumerate(filtered_obj_ids):
-            object_name = gt_provider.get_instance_info_by_id(object_id).name
-
-            # Skip objects in motion
-            if object_name in objects_in_motion:
-                continue
-
-            # Time to approach based on user's velocity, user's position, objects position
-            object_time_xyz, object_time_xz = statistics.interaction_time_user_object(user_velocity_device, user_ema_position, filtered_obj_positions_scene[index][0], T_Scene_Device)
-
-            # Check if the object meets the high dot counts threshold
-            if object_id in filtered_high_dot_counts and len(filtered_high_dot_counts[object_id]) >= parameters["high_dot_counters_threshold"]:
-                # Store high dot values and counts
-                high_dot_counts[object_name] = filtered_names_high_dot_counts[object_name]
-
-                # If the object also meets the low distance count threshold, store additional data
-                if object_id in filtered_low_distance_counts:
-                    high_dot_counts_but_also_distance[object_name] = high_dot_counts[object_name]
-
-            # Check if the object meets the low distance counts threshold
-            if object_id in filtered_low_distance_counts and len(filtered_low_distance_counts[object_id]) >= parameters["distance_counters_threshold"]:
-                # Store low distance values and counts
-                low_distance_counts[object_name] = filtered_names_low_distance_counts[object_name]
-
-                # If the object also meets the high dot count threshold, store additional data
-                if object_id in filtered_high_dot_counts:
-                    low_distance_counts_but_also_high_dot[object_name] = low_distance_counts[object_name]
-            
-            # This is if the object has at least one count in the whole time period of high dot, low distance and duration over 1 second
-            if (object_name in filtered_names_high_dot_counts and  
-                object_name in filtered_names_low_distance_counts and 
-                filtered_names_duration[object_name] > 1):
-                
-                # Object with high dot counts and but also have distance counts 
-                filtered_names_high_dot_counts_and_distance_counts[object_name] = filtered_names_high_dot_counts[object_name]
-                filtered_names_high_dot_counts_and_distance_values[object_name] = f"{float(filtered_dot_products[index]):.3f}"
-                
-                # Object with low distance counts and but also have high dot counts 
-                filtered_names_low_distance_counts_and_high_dot_counts[object_name] = filtered_names_low_distance_counts[object_name]
-                filtered_names_low_distance_counts_and_high_dot_values[object_name] = f"{float(filtered_distances[index]):.3f}"
-                
-                # Store time to approach for objects that meet all criteria
-                time_to_approach_dict[object_name] = object_time_xz
-                time_to_approach_list.append(object_time_xz)
-
-                # If time is below the threshold, store the time
-                if object_time_xz < parameters["time_threshold"]:
-                    less_than_2_seconds_dict[object_name] = object_time_xz
-                    less_than_2_seconds_list.append(object_time_xz)
-                    # print(f"\t Time to approach {object_name} is less than 2 seconds: {object_time_xz}")
-
-        # Maintain history of objects with high dot values
-        all_unique_object_names_with_high_dot |= set(high_dot_counts.keys()) 
-        high_dot_history = list(all_unique_object_names_with_high_dot)
+        # ============================================== LLM activation criteria (activation.py)
+        _crit, all_unique_object_names_with_high_dot = evaluate_activation_criteria(
+            _fo, parameters, statistics, gt_provider,
+            user_velocity_device, user_ema_position, T_Scene_Device,
+            gt_object_names, gt_start_times, gt_end_times,
+            current_time_s, all_unique_object_names_with_high_dot,
+        )
+        high_dot_counts_but_also_distance = _crit.high_dot_counts_but_also_distance
+        low_distance_counts_but_also_high_dot = _crit.low_distance_counts_but_also_high_dot
+        less_than_2_seconds_dict = _crit.less_than_2_seconds_dict
+        filtered_names_high_dot_counts_and_distance_counts = _crit.names_high_dot_counts_and_distance_counts
+        filtered_names_low_distance_counts_and_high_dot_counts = _crit.names_low_distance_counts_and_high_dot_counts
+        filtered_names_high_dot_counts_and_distance_values = _crit.names_high_dot_counts_and_distance_values
+        filtered_names_low_distance_counts_and_high_dot_values = _crit.names_low_distance_counts_and_high_dot_values
+        time_to_approach_dict = _crit.time_to_approach_dict
+        high_dot_history = _crit.high_dot_history
     
         # ==============================================
         # LLM Query and Activation
@@ -997,40 +766,11 @@ def run_experiment(parameters):
         # Objects Inside the radius & LLM activation conditions
         # ==============================================  
         
-        if llm_activated == True:
-
-            """
-            This module verifies if reactivating the LLM is necessary by checking whether it has 
-            been previously queried. If not, running the algorithm is unnecessary, allowing for 
-            computational cost savings.
-            """
-
-            # Get objects within 1.5 meter radius 
-            """
-            At each timestampe returns a list with all the objects inside the radius of 1.5 meters
-            """
-            current_objects_within_radius = object_within_radius(visible_distance_device_objects_scene, visible_obj_names, radius = 1.5) 
-            
-            # Calculate conditions
-            group_analyzer.add_objects(current_time_s, current_objects_within_radius)
-            user_objects = group_analyzer.compare_objects()                                   # Me: Boolean value (True/False) if user moved to different area based on objects around
-            users_move = group_analyzer.user_move(user_relative_total_movement)               # Me: Boolean value (True/False) if user moved to different area based on movement
-            time_since_last_activation = current_time_s - last_activation_time                # Me: Time 
-            
-            # Conditions to enable the LLM
-            """
-            4 conditions for the LLM
-            - Not earlier than 2 seconds 
-            - Not later than 5 seconds 
-            - user's movement significant 
-            - user's is not surrounding by the same of objects 
-            """
-            
-            if time_since_last_activation >  parameters["minimum_time_deactivated"]: 
-                if users_move or user_objects or time_since_last_activation > parameters["maximum_time_deactivated"]:
-                    user_relative_total_movement = 0
-                    last_activation_time = current_time_s
-                    llm_activated = False
+        llm_activated, last_activation_time, user_relative_total_movement = check_reactivation(
+            llm_activated, last_activation_time, user_relative_total_movement,
+            group_analyzer, visible_distance_device_objects_scene, visible_obj_names,
+            current_time_s, parameters,
+        )
 
         # =============================
         # Write video frame (and pause copies)

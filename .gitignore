@@ -35,3 +35,4 @@ env/
 .DS_Store
 .vscode/
 .idea/
+results/predictions/**/time_2_highdot_0.9_highdotcount_60_dist_2_distcount_30/
