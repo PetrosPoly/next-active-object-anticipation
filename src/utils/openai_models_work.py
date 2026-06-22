@@ -8,6 +8,8 @@ import yaml
 import json
 from utils.tools import load_config
 
+_log = logging.getLogger(__name__)
+
 # Load the configuration
 config = load_config()
 
@@ -38,7 +40,7 @@ filepath = os.path.join(txt_folders, filename)
 
 # Prompt filename
 prompt_name = config["prompt_filename"]
-print('Prompt name:', prompt_name)
+_log.debug('Prompt file: %s', prompt_name)
 prompt_path = os.path.join(txt_folders, prompt_name)
 
 # Set up logging configuration to log to a file
@@ -112,7 +114,7 @@ def activate_llm(log_content, parameters, max_retries = 5):
     within_limit, total_tokens = check_token_limit(full_prompt, log_content, max_tokens - 1000)  # Adjust for response tokens
 
     if not within_limit:
-        print(f"Skipping request: Token limit exceeded ({total_tokens} > {max_tokens - 1000})")
+        _log.warning("Skipping request: token limit exceeded (%s > %s)", total_tokens, max_tokens - 1000)
         return None
     
     message_to_LLM = [
@@ -125,7 +127,7 @@ def activate_llm(log_content, parameters, max_retries = 5):
     {"role": "user", "content": f"Prediction: {prompt_predict}"}
 ]
 
-    print('Message to LLM:', message_to_LLM)
+    _log.debug('Message to LLM: %s', message_to_LLM)
     
     response = get_client().chat.completions.create(
     model= models[0],  # Use GPT-4o mini model
@@ -134,7 +136,7 @@ def activate_llm(log_content, parameters, max_retries = 5):
 
     # LLM reply
     llm_generated_msg = response.choices[0].message.content
-    print('LLM reply:', llm_generated_msg)
+    _log.debug('LLM reply: %s', llm_generated_msg)
     return llm_generated_msg
 
 def clean_llm_response(llm_response):
@@ -159,13 +161,13 @@ def process_llm_response(llm_response):
             raise ValueError("One or more required fields are missing or empty in the LLM response.")
         return most_likely_objects_to_interact_with, rationale, predicted_interaction_objects, goal
     except yaml.YAMLError as e:
-        print(f"Error parsing YAML: {e}")
+        _log.error("Error parsing YAML: %s", e)
         raise
     except KeyError as e:
-        print(f"Key not found in the response: {e}")
+        _log.error("Key not found in response: %s", e)
         raise
     except ValueError as e:
-        print(f"Validation error: {e}")
+        _log.error("Validation error: %s", e)
         raise
 
 # Initialize the tokenizer for the OpenAI GPT-3 or GPT-4 model
@@ -178,7 +180,7 @@ def count_tokens(prompt):
 
 def check_token_limit(prompt, log, max_tokens):
     """Check if the combined tokens of prompt and log are within the limit."""
-    print('Prompt:', prompt)
+    _log.debug('Prompt: %s', prompt)
     prompt_tokens = count_tokens(prompt)
     log_tokens = count_tokens(log)
     total_tokens = prompt_tokens + log_tokens

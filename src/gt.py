@@ -105,7 +105,7 @@ def main():
     os.makedirs(gt_folder, exist_ok=True)
     
     # Print the paths
-    print("Sequence_path: ", dataset_folder)
+    main_logger.info("Dataset folder: %s", dataset_folder)
     
     # ==============================================
     # Load the data 
@@ -115,7 +115,7 @@ def main():
         data_paths = paths_provider.get_datapaths_by_device_num(args.device_number)
         gt_provider = AriaDigitalTwinDataProvider(data_paths)
     except Exception as e:
-        print("Error: ", str(e))
+        main_logger.error("Failed to load ADT provider: %s", e)
         exit(-1)
 
     # True to run the rerun.io 
@@ -167,7 +167,7 @@ def main():
     user_object_position = {}                                                       # User's position when a specific object is inside a radius of 1.5 meters 
     user_object_movement = {}                                                       # User's distance from initial position
     
-    print("Variables have been initialized")
+    main_logger.info("Variables initialized")
     
     # For loop from the start of the time till the end of it
     for timestamp_ns in tqdm(img_timestamps_ns):
@@ -308,8 +308,8 @@ def main():
                     original_objects_that_moved_dict[current_time_s] = name
                     previous_moved_names = objects_that_moved_names 
                     indexes_of_objects_that_moved.append(indexes_activation[i])
-                    print(f"\tObjects that have been moved so far: {original_objects_that_moved_dict}")
-                    print(f"\tUser motion while aforementioned object is moving: {user_object_movement}")
+                    main_logger.debug("objects moved so far: %s", original_objects_that_moved_dict)
+                    main_logger.debug("user motion while moving: %s", user_object_movement)
                     
                 # Track the start and end times of the object movement
                 if name not in movement_time_dict:
@@ -339,8 +339,8 @@ def main():
     # Prints
     # ==============================================  
         
-    print(f"\t The ground truth interactions {movement_time_dict}")
-    print(f"\t Total time taken: {end_time - start_time:.2f} seconds")
+    main_logger.info("ground-truth interactions: %s", movement_time_dict)
+    main_logger.info("Total time taken: %.2f seconds", end_time - start_time)
     
 if __name__ == "__main__":
     main()
