@@ -155,6 +155,7 @@ from perception import (
     get_visible_objects, compute_scene_axes, compute_dots_and_distances, filter_objects_by_average,
 )
 from activation import evaluate_activation_criteria, check_reactivation
+from state import UserMotionState
 
 
 def save_predictions(folder, possibilities, rationale, predictions, goals):
@@ -289,8 +290,9 @@ def run_experiment(parameters):
     goals_dict = {}
 
     llm_times = []                                                                  # Me: Timestamps that LLM predicted each output
-    user_velocity_before = None                                                     # Me: Initialize previous velocity
-    user_position_before = None                                                     # Me: Calculate the user's position
+    motion = UserMotionState()                                                      # Me: cross-frame user motion state
+    user_total_movement = 0                                                         # Me: total trajectory length
+    user_relative_total_movement = 0                                                # Me: movement since last LLM activation
     objects_within_radius = []                                                      # Me: Objects in the vicinity of the user
     previous_objects_within_radius = []                                             # Me: Is used to check if the user is stll in the same area that LLM has been activated in order to avoid reactivatiomn of the LLM 
     last_activation_time = 0                                                        # Me: the time activatiom of an LLM
@@ -401,64 +403,14 @@ def run_experiment(parameters):
         # Users poses - position / velocity / movement (scene)
         # ==============================================                                                          
                                                                                 
-        aria_3d_pose_with_dt = gt_provider.get_aria_3d_pose_by_timestamp_ns(timestamp_ns)                                 # Me: Pose of the device
-
+        aria_3d_pose_with_dt = gt_provider.get_aria_3d_pose_by_timestamp_ns(timestamp_ns)
         if aria_3d_pose_with_dt.is_valid():
-            p_dev_scene = aria_3d_pose_with_dt.data()                                                                     # Me: Pose of the user's device on Scene frame
-            T_Scene_Device = p_dev_scene.transform_scene_device                                                           # Me: SE3 of the device 
-            T_Scene_Cam = T_Scene_Device @ T_Device_Cam                                                                   # Me: SE3 from Camera to Scene
-               
-            ## User's position and velocity in the scene frame 
-            user_position_scene = aria_3d_pose_with_dt.data().transform_scene_device.translation()[0]      
-            user_velocity_device = aria_3d_pose_with_dt.data().device_linear_velocity # given in the device frame as per https://facebookresearch.github.io/projectaria_tools/docs/data_formats/mps/slam/mps_trajectory
-            
-            # VELOCITY - From Device to Scene (only rotation is necessary) 
-            """
-                Take only the ROTATION / Velocity vectors represent rates of change of position, so they are not anchored to a specific position in space
-                
-                3 ways to do it
-                
-                1. user_velocity_scene    = T_Scene_Device.rotation().to_matrix() @ user_velocity_device
-                2. user_velocity_scene_v2 = (T_Scene_Device @ user_velocity_device).reshape(1,3)[0] - user_position_scene
-                3. user_velocity_scene_v3 = (T_Scene_Device.to_matrix() @ np.append(user_velocity_device, [1]))[0:3] - user_position_scene
-            """ 
-            user_velocity_scene = T_Scene_Device.rotation().to_matrix() @ user_velocity_device
-            
-            #  EXPONENTIAL MOVEMENT AVERAGE (EMA) & TOTAL MOVEMENT
-            if user_position_before is None and user_velocity_before is None:
-                
-                # USER/DEVICE POSITION 
-                user_ema_position = user_position_before = user_position_scene  
-                user_ema_velocity = user_velocity_before = user_velocity_scene   
-                
-                # Initialise user's movement 
-                user_total_movement = 0                                                                                  # Me: Total movement along the sequene (lenght of trajectory)
-                user_relative_total_movement = 0                                                                         # Me: Is used to activate LLM again
-
-                # USER/DEVICE POSITION at each timestep
-                users_position = deque([(current_time_s, 0)])           
-                users_velocity = deque([(current_time_s, 0)])     
-                
-            else:
-                # EXPONENTIAL MOVEMENT AVERAGE POSITION AND AVERAGE 
-                user_ema_position = exponential_filter(user_position_scene, user_position_before, alpha = 0.9)            # Me: Exponential filter for the position to reduce the noise 
-                user_ema_velocity = exponential_filter(user_velocity_scene, user_velocity_before, alpha = 0.9)            # Me: Apply exponential filter 
-                
-                # MOVEMENT 
-                user_movement_timestep = user_movement_calculation(user_position_before, user_ema_position) 
-                user_total_movement += user_movement_timestep
-                user_relative_total_movement += user_movement_timestep
-                
-                # DEQUE POSITION & DEQUE VELOCITY
-                users_position.append((current_time_s, user_ema_position))                                                 
-                users_velocity.append((current_time_s, user_ema_velocity))       
-                
-                # recalculate the position & velocity before
-                user_position_before = user_ema_position
-                user_velocity_before = user_ema_velocity
-                
-            ## Insert this info in the runio.rr software
-            args.runrr and log_device_transformations(rr, p_dev_scene, T_Device_Cam, ToTransform3D) 
+            p_dev_scene = aria_3d_pose_with_dt.data()
+            (T_Scene_Device, T_Scene_Cam, user_position_scene, user_velocity_device,
+             user_ema_position, _movement_timestep) = motion.update(aria_3d_pose_with_dt, T_Device_Cam, current_time_s)
+            user_total_movement += _movement_timestep
+            user_relative_total_movement += _movement_timestep
+            args.runrr and log_device_transformations(rr, p_dev_scene, T_Device_Cam, ToTransform3D)
         
         # ============================================== Objects + visibility (perception.py)
         _vo = get_visible_objects(gt_provider, timestamp_ns, T_Scene_Cam, rgb_camera_calibration)
