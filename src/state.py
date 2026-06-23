@@ -50,3 +50,35 @@ class UserMotionState:
 
         return (T_Scene_Device, T_Scene_Cam, user_position_scene,
                 user_velocity_device, user_ema_position, movement_timestep)
+
+
+class ActivationState:
+    """Holds LLM activation flags and the per-timestamp output archives."""
+
+    def __init__(self):
+        self.llm_activated = False
+        self.last_activation_time = 0
+
+        # keyed by timestamp (serialized at the end of the run)
+        self.possibility_dict = {}
+        self.rationale_dict = {}
+        self.prediction_dict = {}
+        self.goal_dict = {}
+
+        # chronological lists (kept for parity with the original)
+        self.possibilities = []
+        self.rationales = []
+        self.predictions = []
+        self.goals = []
+        self.llm_times = []
+
+    def record(self, t, possibility, rationale, predicted, goal):
+        self.possibility_dict[t] = possibility
+        self.rationale_dict[t] = rationale
+        self.prediction_dict[t] = predicted
+        self.goal_dict[t] = goal
+        self.possibilities.append(possibility)
+        self.rationales.append(rationale)
+        self.predictions.append(predicted)
+        self.goals.append(goal)
+        self.llm_times.append(t)

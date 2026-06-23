@@ -155,7 +155,8 @@ from perception import (
     get_visible_objects, compute_scene_axes, compute_dots_and_distances, filter_objects_by_average,
 )
 from activation import evaluate_activation_criteria, check_reactivation
-from state import UserMotionState
+from llm_step import query_and_log_llm
+from state import UserMotionState, ActivationState
 
 
 def save_predictions(folder, possibilities, rationale, predictions, goals):
@@ -276,26 +277,12 @@ def run_experiment(parameters):
     
     # Activation of LLM
     llama = False                                                                   # Me: Llama is activated or not      
-    llm_activated = False                                                           # Me: LLM activated or not
-    history_log: Dict                                                               # Me: This is for now 
-
-    objects_possibilities=[]                                                        # Me: Posibilities of objects of the LLM   
-    rationales = []                                                                 # Me: Rationales of objects of the LLM   
-    predictions = []                                                                # Me: Predictions of objects of the LLM   
-    goals = []                                                                      # Me: Goals of objects of the LLM  
-
-    objects_possibility_dict = {}
-    rationale_dict = {}
-    predictions_dict = {}                                                           # Μe: Predictions of the LLM as a dictionary with the timestamps
-    goals_dict = {}
-
-    llm_times = []                                                                  # Me: Timestamps that LLM predicted each output
+    activation = ActivationState()                                                  # Me: LLM activation flags + output archives
     motion = UserMotionState()                                                      # Me: cross-frame user motion state
     user_total_movement = 0                                                         # Me: total trajectory length
     user_relative_total_movement = 0                                                # Me: movement since last LLM activation
     objects_within_radius = []                                                      # Me: Objects in the vicinity of the user
     previous_objects_within_radius = []                                             # Me: Is used to check if the user is stll in the same area that LLM has been activated in order to avoid reactivatiomn of the LLM 
-    last_activation_time = 0                                                        # Me: the time activatiom of an LLM
     all_unique_object_names_with_high_dot = set()                                               
 
     # Initialize classes
@@ -548,132 +535,43 @@ def run_experiment(parameters):
        
         """
 
-        if (high_dot_counts_but_also_distance
-            and low_distance_counts_but_also_high_dot
-            and less_than_2_seconds_dict  # this list contains only objects that have duration visibility over
-            ):
-    
-            # Print statement 
-            # print("the 3 criteria have been satisfied")
+        # ============================================== LLM activation step (llm_step.py)
+        predicted_objects = query_and_log_llm(activation, _crit, args, parameters, llama, current_time_s, project_path)
+        if predicted_objects is not None:
+            user_relative_total_movement = 0
 
-            # Write information only if LLM is ON and is ready to activated 
-            if args.use_llm and not llm_activated:  
-                
-                # Additional condition to activate the LLM. The object that is approachable in less than 2 seconds should belong in the closed list
-                if any(object in high_dot_history for object in less_than_2_seconds_dict.keys()): # TODO: make this soft having it as a group of objects that was looking, Red Clock was within a group 
-                    
-                    """
-                    1. objects names --- high dot counts                                name:  high_focus_objects_measured_in_counts
-                    2. objects names --- distance counts                                name:  nearby_objects_measured_in_counts
-                    3. objects names --- high dot value before activation               name:  objects_names_and_latest_focus_intensity 
-                    4. objects names --- distance value before actication               name:  objects_names_and_latest_distance_from_the_user
-                    5. objects names --- list of names with time less than 2 seconds    name:  quick_access_object 
-                    """
-                    
-                    # write the log
-                    history_log = append_to_history_string(current_time_s, 
-                                            "Living Room", 
-                                            filtered_names_high_dot_counts_and_distance_counts,
-                                            filtered_names_low_distance_counts_and_high_dot_counts,  
-                                            filtered_names_high_dot_counts_and_distance_values,
-                                            filtered_names_low_distance_counts_and_high_dot_values,
-                                            time_to_approach_dict,
-                                            predictions_dict,
-                    )
-        
-                    # Convert history log to a string
-                    history_log_string = str(history_log)
-                    
-                    if llama == True:
-                        print ("Llama is activated")
-                    else: 
-                        print ("Llama is not activated")
+            # Pause overlay + scheduled pause frames (video export)
+            if args.make_video and frame_np is not None:
+                lead_time_txt = "n/a"
+                if isinstance(predicted_objects, list) and len(predicted_objects) > 0:
+                    for cand in predicted_objects:
+                        if cand in movement_time_dict:
+                            lead = movement_time_dict[cand]["start_time"] - current_time_s
+                            lead_time_txt = f"{max(0.0, float(lead)):.2f}s"
+                            break
+                overlay_lines = [
+                    f"t={current_time_s:.2f}s",
+                    f"LLM predicted: {', '.join(predicted_objects) if isinstance(predicted_objects, list) else str(predicted_objects)}",
+                    f"Lead-time: {lead_time_txt}",
+                ]
+                frame_np = draw_overlay(frame_np, overlay_lines)
+                pause_frames = int(max(0.0, args.pause_duration) * max(1, args.fps))
 
-                    # use the LLM
-                    if llama == True:
-                        llm_response = activate_llama(history_log_string, parameters)
-                    else: 
-                        llm_response = activate_llm(history_log, parameters)
-                    # process the output of the LLM
-                    objects_possibility, rationale, predicted_objects, goal = process_llm_response(llm_response)
-                    
-                    main_logger.info("[%.3fs] predicted: %s | goal: %s", current_time_s, predicted_objects, goal)
-                    main_logger.debug("possibilities: %s | rationale: %s", objects_possibility, rationale)
-
-                    # pause the execution and wait for the user to press Enter
-                    # input("Press Enter to continue...")
-
-                    # Update the last time LLM was activated 
-                    last_activation_time = current_time_s
-
-                    # LLM has been activated, so llm should be false and relative total movememt zero
-                    llm_activated = True
-                    user_relative_total_movement = 0
-
-                    # dictionaries & lists
-                    objects_possibility_dict[current_time_s] = objects_possibility
-                    rationale_dict[current_time_s] = rationale
-                    predictions_dict[current_time_s] = predicted_objects
-                    goals_dict[current_time_s] = goal
-
-                    objects_possibilities.append(objects_possibility)
-                    rationales.append(rationale)
-                    predictions.append(predicted_objects)
-                    goals.append(goal)
-                    llm_times.append(current_time_s)
-
-                    # Prepare pause overlay text and schedule pause frames
-                    if args.make_video and frame_np is not None:
-                        # Compute lead-time for first predicted object that exists in GT
-                        lead_time_txt = "n/a"
-                        if isinstance(predicted_objects, list) and len(predicted_objects) > 0:
-                            for cand in predicted_objects:
-                                if cand in movement_time_dict:
-                                    lead = movement_time_dict[cand]["start_time"] - current_time_s
-                                    lead_time_txt = f"{max(0.0, float(lead)):.2f}s"
-                                    break
-                        overlay_lines = [
-                            f"t={current_time_s:.2f}s",
-                            f"LLM predicted: {', '.join(predicted_objects) if isinstance(predicted_objects, list) else str(predicted_objects)}",
-                            f"Lead-time: {lead_time_txt}"
-                        ]
-                        frame_np = draw_overlay(frame_np, overlay_lines)
-                        pause_frames = int(max(0.0, args.pause_duration) * max(1, args.fps))
-
-                    # Rerun overlay and pause simulation on timeline
-                    if args.runrr:
-                        # Log a textual overlay entity with prediction summary
-                        try:
-                            rr.log("overlay/llm", rr.TextLog(f"t={current_time_s:.2f}s | Pred: {', '.join(predicted_objects) if isinstance(predicted_objects, list) else str(predicted_objects)} | Lead: {lead_time_txt}"))
-                        except Exception:
-                            pass
-                        # Simulate pause by emitting repeated frames at synthetic timestamps
-                        try:
-                            synthetic_pause_frames = int(max(0.0, args.pause_duration) * max(1, args.fps))
-                            if synthetic_pause_frames > 0 and image_with_dt.is_valid():
-                                for i in range(synthetic_pause_frames):
-                                    synth_ts_ns = int(timestamp_ns + (i + 1) * (1e9 / max(1, args.fps)))
-                                    set_rerun_time(rr, synth_ts_ns)
-                                    process_and_log_image(rr, args, image_with_dt)
-                        except Exception:
-                            pass
-
-                    # Log the output of LLM in log file 
-                    log_filename = f'logs/time_{current_time_s}.log'    
-                    log_folder = os.path.join(project_path, log_filename)               
-                    os.makedirs(os.path.dirname(log_folder), exist_ok=True)
-                    logger = setup_logger(log_folder)
-                    logger.info(f"LLM Response: {llm_response}")
-                    
-                    # Log history_log content in the log file
-                    history_log_filename = f'logs/history_{current_time_s}.log'
-                    history_log_folder = os.path.join(project_path, history_log_filename)
-                    os.makedirs(os.path.dirname(history_log_folder), exist_ok=True)
-                    history_logger = setup_logger(history_log_folder)
-                    history_logger.info(f"History Log: {history_log}")
-
-                    # Write the conditions to excel for debugging purposes
-                    # write_to_excel(filtered_names_high_dot_counts, filtered_names_low_distance_counts, filtered_names_time_to_approach, filtered_names_dot, filtered_names_distances, predictions_dict, goals_dict, args.sequence_path, parameter_folder_name, current_time_s)
+            # Rerun overlay + pause simulation on the timeline
+            if args.runrr:
+                try:
+                    rr.log("overlay/llm", rr.TextLog(f"t={current_time_s:.2f}s | Pred: {', '.join(predicted_objects) if isinstance(predicted_objects, list) else str(predicted_objects)} | Lead: {lead_time_txt}"))
+                except Exception:
+                    pass
+                try:
+                    synthetic_pause_frames = int(max(0.0, args.pause_duration) * max(1, args.fps))
+                    if synthetic_pause_frames > 0 and image_with_dt.is_valid():
+                        for i in range(synthetic_pause_frames):
+                            synth_ts_ns = int(timestamp_ns + (i + 1) * (1e9 / max(1, args.fps)))
+                            set_rerun_time(rr, synth_ts_ns)
+                            process_and_log_image(rr, args, image_with_dt)
+                except Exception:
+                    pass
         
         # ==============================================
         # Log Only Predicted Objects in rerun.io
@@ -694,7 +592,7 @@ def run_experiment(parameters):
                 object_name = instance_info.name
 
                 # Check if the object is in the predicted list
-                if object_name in predictions_dict.get(current_time_s, []):
+                if object_name in activation.prediction_dict.get(current_time_s, []):
                     # Log the bounding box
                     bbox_3d = bboxes3d[obj_id]
                     aabb_coords = bbox3d_to_line_coordinates(bbox_3d.aabb)
@@ -718,8 +616,8 @@ def run_experiment(parameters):
         # Objects Inside the radius & LLM activation conditions
         # ==============================================  
         
-        llm_activated, last_activation_time, user_relative_total_movement = check_reactivation(
-            llm_activated, last_activation_time, user_relative_total_movement,
+        activation.llm_activated, activation.last_activation_time, user_relative_total_movement = check_reactivation(
+            activation.llm_activated, activation.last_activation_time, user_relative_total_movement,
             group_analyzer, visible_distance_device_objects_scene, visible_obj_names,
             current_time_s, parameters,
         )
@@ -916,7 +814,7 @@ def run_experiment(parameters):
     _seq_name = os.path.basename(os.path.normpath(sequence_path))
     predictions_folder = os.path.join(repo_root, 'results', 'predictions', _seq_name, parameter_folder_name)
     prediction_file = save_predictions(
-        predictions_folder, objects_possibility_dict, rationale_dict, predictions_dict, goals_dict
+        predictions_folder, activation.possibility_dict, activation.rationale_dict, activation.prediction_dict, activation.goal_dict
     )
 
     # Finalize video output: if writer used without explicit path, move tmp preview under predictions folder
