@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import argparse
+from dataclasses import dataclass
 
 from math import tan
 from typing import Dict, Set
@@ -176,6 +177,58 @@ def save_predictions(folder, possibilities, rationale, predictions, goals):
     return os.path.join(folder, "large_language_model_prediction.json")
 
 
+@dataclass
+class LoadedSequence:
+    gt_provider: object
+    rgb_stream_id: object
+    rgb_camera_calibration: object
+    T_Device_Cam: object
+    img_timestamps_ns: list
+    start_time: float
+    aria_pose_start_timestamp: int
+    aria_pose_end_timestamp: int
+    device_calibration: object
+    aria_glasses_point_outline: object
+
+
+def load_sequence(args):
+    """Open the ADT provider and load calibration + RGB timestamps for a sequence."""
+    dataset_folder = args.sequence_path
+    try:
+        paths_provider = AriaDigitalTwinDataPathsProvider(dataset_folder)
+        data_paths = paths_provider.get_datapaths_by_device_num(args.device_number)
+        gt_provider = AriaDigitalTwinDataProvider(data_paths)
+    except Exception as e:
+        main_logger.error("Failed to load ADT provider: %s", e)
+        exit(-1)
+
+    args.runrr and initialize_rerun_viewer(rr, args)
+
+    aria_pose_start_timestamp = gt_provider.get_start_time_ns()
+    aria_pose_end_timestamp = gt_provider.get_end_time_ns()
+    rgb_stream_id = StreamId("214-1")
+
+    rgb_camera_calibration = gt_provider.get_aria_camera_calibration(rgb_stream_id)
+    T_Device_Cam = rgb_camera_calibration.get_transform_device_camera()
+    args.runrr and log_camera_calibration(rr, rgb_camera_calibration, args)
+
+    img_timestamps_ns = gt_provider.get_aria_device_capture_timestamps_ns(rgb_stream_id)
+    img_timestamps_ns = [
+        t for t in img_timestamps_ns
+        if aria_pose_start_timestamp <= t <= aria_pose_end_timestamp
+    ]
+    start_time = img_timestamps_ns[0] / 1e9
+
+    device_calibration = gt_provider.raw_data_provider_ptr().get_device_calibration()
+    aria_glasses_point_outline = AriaGlassesOutline(device_calibration)
+    args.runrr and log_aria_glasses(rr, aria_glasses_point_outline)
+
+    return LoadedSequence(
+        gt_provider, rgb_stream_id, rgb_camera_calibration, T_Device_Cam,
+        img_timestamps_ns, start_time, aria_pose_start_timestamp,
+        aria_pose_end_timestamp, device_calibration, aria_glasses_point_outline,
+    )
+
 def run_experiment(parameters):
     
     work_in_xz_plane = True
@@ -220,44 +273,17 @@ def run_experiment(parameters):
     main_logger.info("VRS file:        %s", vrsfile)
     main_logger.info("GT trajectory:   %s", ADT_trajectory_file)
 
-    try:
-        paths_provider = AriaDigitalTwinDataPathsProvider(dataset_folder)
-        data_paths = paths_provider.get_datapaths_by_device_num(args.device_number)
-        gt_provider = AriaDigitalTwinDataProvider(data_paths)
-    except Exception as e:
-        main_logger.error("Failed to load ADT provider: %s", e)
-        exit(-1)
-
-    # True to run the rerun.io 
-    args.runrr and initialize_rerun_viewer(rr, args)
-
-    # Load the device trajectory timestamps
-    aria_pose_start_timestamp = gt_provider.get_start_time_ns()                     # Me: Get the start time of the Aria poses in nanoseconds
-    aria_pose_end_timestamp = gt_provider.get_end_time_ns()                         # Me: Get the end time
-    rgb_stream_id = StreamId("214-1")
-    
-    # Load the camera calibration
-    rgb_camera_calibration = gt_provider.get_aria_camera_calibration(rgb_stream_id) # Me: Get the camera calibration of an Aria camera, including intrinsics, distortion params,and projection functions.
-    T_Device_Cam = rgb_camera_calibration.get_transform_device_camera()             # Me: Τhis does not change based on time
-    args.runrr and log_camera_calibration(rr, rgb_camera_calibration, args)
-
-    # Get all timestamps (in ns) of all observations of an Aria sensor
-    img_timestamps_ns = gt_provider.get_aria_device_capture_timestamps_ns(rgb_stream_id)    
-    img_timestamps_ns = [
-        img_timestamp_ns 
-        for i, img_timestamp_ns in enumerate(img_timestamps_ns)
-        if (
-            img_timestamp_ns >= aria_pose_start_timestamp
-            and img_timestamp_ns <= aria_pose_end_timestamp
-        )
-    ]
-    start_time = img_timestamps_ns[0] / 1e9
-    
-    # Log Aria Glasses outline
-    raw_data_provider_ptr = gt_provider.raw_data_provider_ptr()
-    device_calibration = raw_data_provider_ptr.get_device_calibration()
-    aria_glasses_point_outline = AriaGlassesOutline(device_calibration)
-    args.runrr and log_aria_glasses(rr, aria_glasses_point_outline)
+    _seq = load_sequence(args)
+    gt_provider = _seq.gt_provider
+    rgb_stream_id = _seq.rgb_stream_id
+    rgb_camera_calibration = _seq.rgb_camera_calibration
+    T_Device_Cam = _seq.T_Device_Cam
+    img_timestamps_ns = _seq.img_timestamps_ns
+    start_time = _seq.start_time
+    aria_pose_start_timestamp = _seq.aria_pose_start_timestamp
+    aria_pose_end_timestamp = _seq.aria_pose_end_timestamp
+    device_calibration = _seq.device_calibration
+    aria_glasses_point_outline = _seq.aria_glasses_point_outline
     
     # ==============================================
     # Initialization 
