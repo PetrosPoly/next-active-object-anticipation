@@ -19,27 +19,26 @@ def transform_point(se3: SE3, point: np.ndarray) -> np.ndarray:
 def load_config(config_path=None):
     """
     Load configuration from a YAML file.
-    If no path is provided, it defaults to 'config.yaml' in the parent directory of the script.
+    Defaults to <repo>/configs/config.yaml (this file lives in <repo>/src/utils).
     """
+    # tools.py is at <repo>/src/utils/tools.py  ->  src_dir = <repo>/src
+    src_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     if config_path is None:
-        # Get the directory of the current script
-        script_dir = os.path.dirname(os.path.abspath(__file__))
-        # Construct the path to config.yaml in the parent directory
-        config_path = os.path.join(script_dir, "../config.yaml")
-    
+        config_path = os.path.join(src_dir, "..", "configs", "config.yaml")
+
     if not os.path.exists(config_path):
         raise FileNotFoundError(f"Configuration file not found at {config_path}")
-    
+
     with open(config_path, 'r') as file:
         config = yaml.safe_load(file)
 
-    # Resolve project_path: env override > config value > directory of config.yaml.
-    # Defaulting to the config's own directory makes the repo runnable after a
-    # plain `git clone` without editing absolute paths.
+    # Resolve project_path: env override > config value > the src/ directory.
+    # Defaulting to src/ makes the repo runnable after a plain `git clone`
+    # (prompts, logs and run-time outputs are located relative to it).
     project_path = os.environ.get("PROJECT_ROOT") or config.get("project_path") or ""
     project_path = os.path.expanduser(project_path)
     if not project_path or not os.path.isdir(project_path):
-        project_path = os.path.dirname(os.path.abspath(config_path))
+        project_path = src_dir
     config["project_path"] = project_path
     return config
 

@@ -48,11 +48,11 @@ See [docs/architecture.md](docs/architecture.md) for a detailed breakdown of eac
 
 | Stage | Module | Description |
 |-------|--------|-------------|
-| **Perception / geometry** | `src/main.py`, `src/utils/tools.py`, `src/utils/stats.py` | Computes the dot product between gaze (camera Z-axis) and the camera→object vector in the XZ plane, user→object distances, and a velocity-based *time-to-approach*. A sliding window (~3 s) accumulates per-object consistency counts. |
-| **Candidate filtering & activation** | `src/main.py` | Keeps objects that are highly focused **and** near, then fires the LLM only when an object has enough high-gaze counts, enough proximity counts, and a time-to-approach below threshold. |
-| **LLM prediction** | `src/utils/openai_models*.py` | Sends the spatial context + history of past predictions to GPT-4o-mini and parses a structured (YAML) response into possibilities, rationale, top-3 prediction, and user goal. Async/parallel execution with rate limiting. |
+| **Perception / geometry** | `src/pipeline/perception.py`, `src/utils/stats.py` | Computes the dot product between gaze (camera Z-axis) and the camera→object vector in the XZ plane, user→object distances, and a velocity-based *time-to-approach*. A sliding window (~3 s) accumulates per-object consistency counts. |
+| **Candidate filtering & activation** | `src/pipeline/activation.py` | Keeps objects that are highly focused **and** near, then fires the LLM only when an object has enough high-gaze counts, enough proximity counts, and a time-to-approach below threshold. |
+| **LLM prediction** | `src/pipeline/llm_step.py`, `src/utils/openai_models_work.py` | Sends the spatial context + history of past predictions to GPT-4o-mini and parses a structured (YAML) response into possibilities, rationale, top-3 prediction, and user goal. |
 | **Ground truth** | `src/gt.py` | Detects when each object actually moved (relative SE3 pose change with EMA smoothing) and writes `objects_that_moved`, `movement_time_dict`, `user_object_movement`. |
-| **Evaluation** | `src/utils/evaluation.py`, `src/utils/stats.py` | Aligns prediction times with ground-truth interaction times and reports detection accuracy/precision/recall and top-3 object accuracy. |
+| **Evaluation** | `src/evaluation/metrics.py`, `src/evaluation/results_parallel.py` | Aligns prediction times with ground-truth interaction times and reports detection accuracy/precision/recall and top-3 object accuracy. |
 
 ## Results
 
@@ -118,7 +118,7 @@ uv run gt.py   --sequence_path "$SEQ"              # 1. ground truth
 uv run main.py --sequence_path "$SEQ"              # 2. perception-only (no API key)
 uv run main.py --sequence_path "$SEQ" --use_llm    # 2b. with LLM predictions
 uv run main.py --sequence_path "$SEQ" --make_video # 2c. export an annotated mp4
-uv run results_parallel.py                         # 3. evaluate
+uv run python -m evaluation.results_parallel       # 3. evaluate
 ```
 
 To regenerate the explainer video at the top of this README from existing predictions:
@@ -135,35 +135,36 @@ Outputs are written per parameter combination as
 
 ## Configuration
 
-- **Paths** — `src/config.yaml` holds `project_path` (used to locate prompts, logs and
+- **Paths** — `configs/config.yaml` holds `project_path` (used to locate prompts, logs and
   ground-truth files). Leave it empty to auto-resolve to the `src/` directory, or set
   the `PROJECT_ROOT` environment variable. No absolute paths are hardcoded.
 - **Activation thresholds** — gaze/proximity consistency, time-to-approach, sliding-window
-  length and LLM re-activation timing are defined at the top of `src/main.py`
+  length and LLM re-activation timing are defined in `src/pipeline/experiment_config.py`
   (and documented for reference in `configs/default.yaml`).
 - **LLM prompts** — the prompt template lives in `src/utils/txt_files/prompts.txt`.
 
 ## Repository structure
 
 ```
+configs/                        # all configuration (no config in src/)
+├── config.yaml                 # paths (project_path auto-resolves) + prompt filename
+└── default.yaml                # reference parameter values
 src/
-├── main.py                     # entry point: per-frame perception + LLM activation
+├── main.py                     # entry point: per-frame orchestration loop
 ├── gt.py                       # ground-truth generation
-├── config.yaml                 # path configuration (auto-resolving)
-├── results.py                  # evaluation
-├── results_parallel.py         # batch evaluation
-├── utils/
-│   ├── stats.py                # sliding-window stats, time-to-approach
-│   ├── tools.py                # geometry helpers (visibility, transforms, EMA, config)
-│   ├── openai_models_work.py   # LLM prediction backend (OpenAI)
-│   ├── llama.py                # alternative Llama backend
-│   ├── evaluation.py           # metrics
-│   ├── objectsGroup_user.py    # area-change detection for LLM re-activation
-│   ├── object_detection.py     # object helpers
-│   ├── rate_limit.py           # API rate limiting
+├── pipeline/                   # the anticipation pipeline
+│   ├── perception.py           # visible objects, scene axes, dot-products/distances, filtering
+│   ├── activation.py           # LLM activation criteria + re-activation gating
+│   ├── state.py                # UserMotionState, ActivationState (cross-frame state)
+│   ├── llm_step.py             # gate -> LLM query -> parse -> record -> log
+│   └── experiment_config.py    # parameter grid + output naming
+├── evaluation/                 # metrics & batch evaluation (run: python -m evaluation.results_parallel)
+│   ├── metrics.py              # LLMEvaluation
+│   ├── results.py
+│   └── results_parallel.py
+├── utils/                      # tools, stats, openai_models_work, llama, objectsGroup_user, ...
 │   └── txt_files/prompts.txt   # LLM prompt template
-├── visualization/rr.py         # rerun.io 3D visualization
-└── helpers/                    # Excel debug logging
+└── visualization/rr.py         # rerun.io 3D visualization
 tools/make_algorithm_video.py   # render the explainer video from predictions
 data/adt/<seq>/                 # ADT sequences — dataset ONLY (downloaded; gitignored)
 results/                        # generated outputs (NOT in data/)

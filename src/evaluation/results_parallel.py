@@ -3,11 +3,13 @@ import json
 import time
 import multiprocessing as mp
 from itertools import product
-from utils.evaluation import LLMEvaluation
+from evaluation.metrics import LLMEvaluation
 import pandas as pd
     
 # Project path
-project_path = os.environ.get("PROJECT_ROOT", os.path.dirname(os.path.abspath(__file__)))
+_SRC = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+_REPO = os.path.dirname(_SRC)
+project_path = os.environ.get("PROJECT_ROOT", _SRC)
 sequences = ['Apartment_release_clean_seq150_M1292'] #, 'Apartment_release_work_seq107_M1292']
 
 # Parameters for the language model module
@@ -94,10 +96,10 @@ def write_custom_json(data, file_path):
 # Function to filter ground truth data
 def filter_ground_truth(sequence):
     # Load ground truth data
-    with open(os.path.join(project_path, 'data', 'gt', sequence, 'objects_that_moved.json'), 'r') as json_file:
+    with open(os.path.join(_REPO, 'results', 'gt', sequence, 'objects_that_moved.json'), 'r') as json_file:
         original_objects_that_moved_dict = json.load(json_file)
 
-    with open(os.path.join(project_path, 'data', 'gt', sequence, 'user_object_movement.json'), 'r') as json_file:
+    with open(os.path.join(_REPO, 'results', 'gt', sequence, 'user_object_movement.json'), 'r') as json_file:
         user_object_movement = json.load(json_file)
 
     # Filter the ground truth data based on the user's motion
@@ -105,7 +107,7 @@ def filter_ground_truth(sequence):
     ground_truth = {float(k): v for k, v in original_objects_that_moved_dict.items() if v in filtered_objects}
     
     # Save filtered ground truth (optional, if needed later)
-    ground_truth_folder = os.path.join(project_path, 'data', 'gt', sequence)
+    ground_truth_folder = os.path.join(_REPO, 'results', 'gt', sequence)
     os.makedirs(ground_truth_folder, exist_ok=True)
     with open(os.path.join(ground_truth_folder, 'filtered_ground_truth.json'), 'w') as file:
         json.dump(ground_truth, file, indent=4)
@@ -125,7 +127,7 @@ def run_simulation(parameters, ground_truth, sequence):
     )
 
     # Load predictions
-    with open(os.path.join(project_path, 'data', 'predictions', sequence, parameter_folder_name, 'large_language_model_prediction.json')) as json_file:
+    with open(os.path.join(_REPO, 'results', 'predictions', sequence, parameter_folder_name, 'large_language_model_prediction.json')) as json_file:
         predictions_dict = json.load(json_file)
 
     # LLM predictions and evaluation logic
@@ -162,7 +164,7 @@ def run_simulation(parameters, ground_truth, sequence):
     results.append(result)
     
     # Define the folders that we will write the results       
-    result_folder = os.path.join(project_path, 'data', 'results', sequence, parameter_folder_name)
+    result_folder = os.path.join(_REPO, 'results', 'eval', sequence, parameter_folder_name)
     os.makedirs(result_folder, exist_ok=True)  
 
     # Write the correspondances
@@ -204,7 +206,7 @@ if __name__ == "__main__":
     flattened_results = [item for sublist in all_results for item in sublist]
 
     # Save final results to JSON and CSV
-    results_folder = os.path.join(project_path, 'data', 'results')
+    results_folder = os.path.join(_REPO, 'results', 'eval')
     os.makedirs(results_folder, exist_ok=True)
 
     with open(os.path.join(results_folder, 'final_results.json'), 'w') as file:

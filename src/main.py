@@ -60,7 +60,6 @@ from projectaria_tools.projects.adt import (
 
 from tqdm import tqdm    
 
-from helpers import write_to_excel # Me: added by Petros and is only for debugging
 
 # Visualization imports are optional — only used when --runrr is passed.
 try:
@@ -150,13 +149,13 @@ def parse_args():
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 main_logger = logging.getLogger(__name__)
 
-from experiment_config import build_param_combinations, make_parameter_folder_name
-from perception import (
+from pipeline.experiment_config import build_param_combinations, make_parameter_folder_name
+from pipeline.perception import (
     get_visible_objects, compute_scene_axes, compute_dots_and_distances, filter_objects_by_average,
 )
-from activation import evaluate_activation_criteria, check_reactivation
-from llm_step import query_and_log_llm
-from state import UserMotionState, ActivationState
+from pipeline.activation import evaluate_activation_criteria, check_reactivation
+from pipeline.llm_step import query_and_log_llm
+from pipeline.state import UserMotionState, ActivationState
 
 
 def save_predictions(folder, possibilities, rationale, predictions, goals):

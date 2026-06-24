@@ -2,14 +2,16 @@ import numpy as np
 import os                                   
 import json
 import matplotlib.pyplot as plt
-from utils.evaluation import LLMEvaluation
+from evaluation.metrics import LLMEvaluation
 from itertools import product               # added by Petros ()
 import pandas as pd
 
 
 
 # Project path
-project_path = os.environ.get("PROJECT_ROOT", os.path.dirname(os.path.abspath(__file__)))
+_SRC = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+_REPO = os.path.dirname(_SRC)
+project_path = os.environ.get("PROJECT_ROOT", _SRC)
 sequences = ['Apartment_release_clean_seq150_M1292'] # , 'Apartment_release_work_seq107_M1292']
 # sequences = ['Apartment_release_work_seq107_M1292'] # , 'Apartment_release_clean_seq150_M1292']
 
@@ -99,7 +101,7 @@ def main():
         parameters_comb = os.path.join(project_path, 'utils', 'json', 'param_combinations.json')
 
         # Folder to write the ground truth data - Where the filtered ground t
-        ground_truth_folder = os.path.join(project_path, 'data', 'gt', sequence)
+        ground_truth_folder = os.path.join(_REPO, 'results', 'gt', sequence)
         os.makedirs(ground_truth_folder, exist_ok = True)
 
         # ==============================================
@@ -111,10 +113,10 @@ def main():
         #     loaded_param_combinations = json.load(file)
 
         # Load the Ground Truth
-        with open(os.path.join(project_path, 'data', 'gt', sequence, 'objects_that_moved.json'), 'r') as json_file:
+        with open(os.path.join(_REPO, 'results', 'gt', sequence, 'objects_that_moved.json'), 'r') as json_file:
             original_objects_that_moved_dict = json.load(json_file)
 
-        with open(os.path.join(project_path, 'data', 'gt', sequence, 'user_object_movement.json'), 'r') as json_file:
+        with open(os.path.join(_REPO, 'results', 'gt', sequence, 'user_object_movement.json'), 'r') as json_file:
             user_object_movement = json.load(json_file)
 
         # Filter the Ground Truth Data based on the user's motion
@@ -146,7 +148,7 @@ def main():
             # ==============================================
             
             # Load the predictions from each corresponding folder 
-            with open(os.path.join(project_path, 'data', 'predictions', sequence, parameter_folder_name, 'large_language_model_prediction.json')) as json_file:
+            with open(os.path.join(_REPO, 'results', 'predictions', sequence, parameter_folder_name, 'large_language_model_prediction.json')) as json_file:
                 predictions_dict = json.load(json_file)
 
             # LLM predictions
@@ -191,7 +193,7 @@ def main():
             print(result)   
 
             # Define the folders that we will write the results       
-            result_folder = os.path.join(project_path, 'data', 'results', sequence, parameter_folder_name)
+            result_folder = os.path.join(_REPO, 'results', 'eval', sequence, parameter_folder_name)
             os.makedirs(result_folder, exist_ok=True)  
 
             # Write the correspondances
@@ -206,7 +208,7 @@ def main():
     # ==============================================
     
     # Define the folders that we will write the results       
-    results_folder = os.path.join(project_path, 'data', 'results')
+    results_folder = os.path.join(_REPO, 'results', 'eval')
     os.makedirs(results_folder, exist_ok=True)  
 
     # Write the results
