@@ -13,112 +13,50 @@
 # limitations under the License.
 
 import argparse
+import json
+import logging
+import os
+import sys
+import time
 from dataclasses import dataclass
-
-from math import tan
-from typing import Dict, Set
 
 import numpy as np
 
 # rerun-sdk exposes `rerun` via a path-style .pth that uv-managed venvs may not
 # process; add rerun_sdk to sys.path so --runrr / --make_video visualization works.
-import sys as _sys, os as _os
-for _p in list(_sys.path):
-    if _os.path.isdir(_os.path.join(_p, "rerun_sdk")):
-        _sys.path.insert(0, _os.path.join(_p, "rerun_sdk")); break
+for _p in list(sys.path):
+    if os.path.isdir(os.path.join(_p, "rerun_sdk")):
+        sys.path.insert(0, os.path.join(_p, "rerun_sdk")); break
 try:
     import rerun as rr
 except ImportError:
     rr = None
 
-import time
-import os                                   
-
-from collections import deque, defaultdict  
-from typing import Dict, List, Tuple, Deque 
-
-from itertools import product           
-
-import logging
-import os
-import csv
-import json
-
-# from projectaria_tools.core.mps.utils import get_gaze_vector_reprojection 
-
-from projectaria_tools.core import data_provider, mps
-from projectaria_tools.core.calibration import CameraCalibration, DeviceCalibration
-from projectaria_tools.core.sophus import SE3
 from projectaria_tools.core.stream_id import StreamId
 from projectaria_tools.projects.adt import (
     AriaDigitalTwinDataPathsProvider,
     AriaDigitalTwinDataProvider,
-    AriaDigitalTwinSkeletonProvider,
     bbox3d_to_line_coordinates,
-    DYNAMIC,
-    STATIC,
 )
+from tqdm import tqdm
 
-from tqdm import tqdm    
-
-
-# Visualization imports are optional — only used when --runrr is passed.
+# Visualization helpers are optional — only used when --runrr is passed.
 try:
-    from projectaria_tools.utils.rerun_helpers import (
-        AriaGlassesOutline,                                  # Me: Return a list of points to be used to draw the outline of the glasses (line strip).
-        ToTransform3D                                        # Me: Helper function to convert Sophus SE3D pose to a Rerun Transform3D
-    )
-    from visualization.rr import (                           # Me: added by Petros
-        initialize_rerun_viewer,                             # Me: Initialize the rerun software
-        log_camera_calibration,                              # Me: Log the camera features
-        log_aria_glasses,                                    # Me: Log the aria glasses
-        set_rerun_time,
-        process_and_log_image,
-        log_device_transformations,
-        log_dynamic_object,
-        log_object,                                          # Me: Log an object
-        log_object_line,                                     # Me: Log an object Line
-        log_vector,                                          # Me: Log the velocity line
-        log_vector_2,
-        clear_logs_names,                                    # Me: At each timestep clear the objects from the visualization tool
-        clear_logs_ids,
+    from projectaria_tools.utils.rerun_helpers import AriaGlassesOutline, ToTransform3D
+    from visualization.rr import (
+        initialize_rerun_viewer, log_camera_calibration, log_aria_glasses,
+        set_rerun_time, process_and_log_image, log_device_transformations,
+        log_object, log_object_line, clear_logs_names, clear_logs_ids,
     )
 except ImportError:
-    # rerun not available: visualization disabled. These names are only ever
-    # referenced behind `args.runrr and ...`, so they stay unused without --runrr.
     AriaGlassesOutline = ToTransform3D = None
     initialize_rerun_viewer = log_camera_calibration = log_aria_glasses = None
     set_rerun_time = process_and_log_image = log_device_transformations = None
-    log_dynamic_object = log_object = log_object_line = log_vector = log_vector_2 = None
-    clear_logs_names = clear_logs_ids = None
+    log_object = log_object_line = clear_logs_names = clear_logs_ids = None
 
-from utils.tools import (
-    transform_point,                                          # Me: Transformation point from scene to camera frame
-    visibility_mask,                                          # Me: Check which points are visible and which are not visible
-    exponential_filter,                                       # Me: Filter the velocity with exponential mean average 
-    object_within_radius,                                     # Me: Check the objects that are close to a user
-    user_movement_calculation,                                # Me: User's movement calculation   
-    load_config,                                              # Me: Load the configuration file   
-)
-
-from utils.openai_models_work import ( 
-    activate_llm,                                             # Me: Query the LLM
-    setup_logger,                                             # Me: Setup the logger
-    append_to_history_string,                                 # Me: Write the history in a string
-    process_llm_response,                                     # Me: Post processing of LLM output                                           
-)
-
-from utils.llama import (
-    activate_llama
-)
-
-from utils.objectsGroup_user import (
-    ObjectGroupAnalyzer                                       # Me: Class to analyse the objects around the user and specify if the user is changing areas
-)
-
-from utils.stats import (
-    Statistics                                                # Me: Keep statistics for high dot value and low distance
-)
+from utils.tools import load_config
+from utils.objectsGroup_user import ObjectGroupAnalyzer
+from utils.stats import Statistics
 
 def parse_args():
     parser = argparse.ArgumentParser()
@@ -126,8 +64,8 @@ def parse_args():
     parser.add_argument("--device_number", type=int, default=0, help="Device_number you want to visualize, default is 0")
     parser.add_argument("--down_sampling_factor", type=int, default=4, help=argparse.SUPPRESS)
     parser.add_argument("--jpeg_quality", type=int, default=75, help=argparse.SUPPRESS)
-    parser.add_argument("--rrd_output_path", type=str, default="", help=argparse.SUPPRESS)                                                # Me: If this path is set, we will save the rerun (.rrd) file to the given path
-    parser.add_argument("--use_llm", action='store_true',help="If you include it in arguments becomes True")                              # Me: added by Petros, if there is a value that 
+    parser.add_argument("--rrd_output_path", type=str, default="", help=argparse.SUPPRESS)
+    parser.add_argument("--use_llm", action='store_true',help="If you include it in arguments becomes True")
     parser.add_argument("--runrr", action='store_true',help="Run the the visualization part..same as above")   
     parser.add_argument("--visualize_objects", action='store_true',help="Visualize the objects in the rerun.io")   
     parser.add_argument("--make_video", action='store_true', help="Export annotated video with LLM pauses")
@@ -222,11 +160,8 @@ def load_sequence(args):
 
 def run_experiment(parameters):
     
-    work_in_xz_plane = True
     
-    # ==============================================
     # Filenames / Paths  & Load of the Data
-    # ==============================================
     args = parse_args()
     
     # Base folder path for saving predictions
@@ -238,14 +173,13 @@ def run_experiment(parameters):
     print ("Sequence path: ", sequence_path)
     # Datasets path
     dataset_folder = os.path.join(sequence_path)
-    os.makedirs(dataset_folder, exist_ok=True)                                          # Me: Ensure the entire directory 
+    os.makedirs(dataset_folder, exist_ok=True)
     
     # VRS file and Ground 
     vrsfile = os.path.join(dataset_folder, "video.vrs")
     ADT_trajectory_file = os.path.join(dataset_folder, "aria_trajectory.csv")
     
     # Path to log items for the LLM - Define the CSV file to log the items and check if it exists to write the header
-    csv_file = os.path.join(project_path,'utils','txt_files','interaction_log.csv')
 
     # Save the list to a file
     json_folder = os.path.join(project_path,'utils','json')
@@ -272,33 +206,22 @@ def run_experiment(parameters):
     img_timestamps_ns = _seq.img_timestamps_ns
     start_time = _seq.start_time
     aria_pose_start_timestamp = _seq.aria_pose_start_timestamp
-    aria_pose_end_timestamp = _seq.aria_pose_end_timestamp
-    device_calibration = _seq.device_calibration
-    aria_glasses_point_outline = _seq.aria_glasses_point_outline
     
-    # ==============================================
-    # Initialization 
-    # ==============================================
-    dynamic_obj_pose_cache: Dict[str, SE3] = {}                                     # Me: initializes a dictionary maps string keys (likely object identifiers) to SE3 objects
-    static_obj_ids: Set[int] = set()                                                # Me: initializes a set intended to store the IDs of static objects. 
-    dynamic_obj_moved: Set[str] = set()                                             # Me: initializes a set intended to store the IDS of dynamic objects.
+    # Initialization
 
     # Intialize variable for visualizations part 
-    previous_obj_ids = set()                                                        # Me: keep track of previously logged objects ids 
-    previous_obj_names = set()                                                      # Me: keep track of previously logged objects names
+    previous_obj_ids = set()
+    previous_obj_names = set()
     
     # Collection for the time window variables
-    average = True                                                                  # Me: use the accumulated average dot value and distance to filter the objects
-    previous_time_ns = aria_pose_start_timestamp                                    # Me: Initialize time to store duration of each object
+    previous_time_ns = aria_pose_start_timestamp
     
     # Activation of LLM
-    llama = False                                                                   # Me: Llama is activated or not      
-    activation = ActivationState()                                                  # Me: LLM activation flags + output archives
-    motion = UserMotionState()                                                      # Me: cross-frame user motion state
-    user_total_movement = 0                                                         # Me: total trajectory length
-    user_relative_total_movement = 0                                                # Me: movement since last LLM activation
-    objects_within_radius = []                                                      # Me: Objects in the vicinity of the user
-    previous_objects_within_radius = []                                             # Me: Is used to check if the user is stll in the same area that LLM has been activated in order to avoid reactivatiomn of the LLM 
+    llama = False
+    activation = ActivationState()
+    motion = UserMotionState()
+    user_total_movement = 0
+    user_relative_total_movement = 0
     all_unique_object_names_with_high_dot = set()                                               
 
     # Initialize classes
@@ -309,14 +232,12 @@ def run_experiment(parameters):
                             parameters["distance_threshold"], 
                             parameters["distance_threshold"], 
                             parameters["time_threshold"]
-                            )      # Me: Initialize the Object Statistics instance
+                            )
 
     # Optional annotated-video exporter (--make_video); no-op otherwise.
     recorder = VideoRecorder(args, repo_root, sequence_path)
 
-    # ==============================================
-    # Load the Ground truth data 
-    # ==============================================
+    # Load the Ground truth data
     
     # Locate the ground-truth file. `sequence_path` may be a full path or a name,
     # so try the project gt folder first, then the sequence folder itself.
@@ -338,9 +259,7 @@ def run_experiment(parameters):
     gt_start_times = np.array([movement_time_dict[obj]['start_time'] for obj in gt_object_names])
     gt_end_times = np.array([movement_time_dict[obj]['end_time'] for obj in gt_object_names])
     
-    # ==============================================
     # Loop over all timestamps in the sequence
-    # ==============================================
 
     for timestamp_ns in tqdm(img_timestamps_ns):
         args.runrr  and set_rerun_time(rr, timestamp_ns)
@@ -350,7 +269,7 @@ def run_experiment(parameters):
         current_time_s = round((current_time_ns / 1e9 - start_time), 3)
 
         ## Time Difference
-        time_difference_ns = (current_time_ns - previous_time_ns) / 1e9                                                  # Me: Calculate the time difference in seconds
+        time_difference_ns = (current_time_ns - previous_time_ns) / 1e9
         previous_time_ns = current_time_ns
 
         ## Clear previously logged objects and lines
@@ -368,9 +287,7 @@ def run_experiment(parameters):
         # Get numpy frame for video export (RGB); None unless --make_video
         frame_np = recorder.grab(image_with_dt)
 
-        # ==============================================
         # Users poses - position / velocity / movement (scene)
-        # ==============================================                                                          
                                                                                 
         aria_3d_pose_with_dt = gt_provider.get_aria_3d_pose_by_timestamp_ns(timestamp_ns)
         if aria_3d_pose_with_dt.is_valid():
@@ -384,44 +301,24 @@ def run_experiment(parameters):
         # ============================================== Objects + visibility (perception.py)
         _vo = get_visible_objects(gt_provider, timestamp_ns, T_Scene_Cam, rgb_camera_calibration)
         bboxes3d = _vo.bboxes3d
-        obj_ids = _vo.obj_ids
-        obj_names = _vo.obj_names
         obj_positions_scene = _vo.obj_positions_scene
-        T_Cam_Scene = _vo.T_Cam_Scene
-        obj_positions_cam = _vo.obj_positions_cam
         valid_mask = _vo.valid_mask
-        T_scene_object = _vo.T_scene_object
         object_ids = visible_obj_ids = _vo.visible_obj_ids
         visible_obj_names = _vo.visible_obj_names
         object_positions = visible_obj_positions_scene = _vo.visible_obj_positions_scene
-        visible_obj_positions_cam = _vo.visible_obj_positions_cam
         
         # ============================================== Scene / camera axes (perception.py)
         _axes = compute_scene_axes(T_Scene_Cam, T_Scene_Device)
-        cam_x_axis_scene = _axes.cam_x_axis_scene
-        cam_y_axis_scene = _axes.cam_y_axis_scene
-        cam_z_axis_scene = _axes.cam_z_axis_scene
         cam_z_axis_rotation = _axes.cam_z_axis_rotation
-        device_x_axis_scene = _axes.device_x_axis_scene
-        device_y_axis_scene = _axes.device_y_axis_scene
-        device_z_axis_scene = _axes.device_z_axis_scene
-        world_x_axis = _axes.world_x_axis
-        world_y_axis = _axes.world_y_axis
-        world_z_axis = _axes.world_z_axis
         
         # ============================================== Dot products + distances (perception.py)
         _dd = compute_dots_and_distances(obj_positions_scene, user_position_scene, T_Scene_Cam, cam_z_axis_rotation, valid_mask)
-        camera_position_scene = _dd.camera_position_scene
         dot_products = _dd.dot_products
         distances = _dd.distances
         visible_dot_products = _dd.visible_dot_products
-        visible_vector_camera_objects_scene = _dd.visible_vector_camera_objects_scene
-        visible_distance_camera_objects_scene = _dd.visible_distance_camera_objects_scene
         visible_distance_device_objects_scene = _dd.visible_distance_device_objects_scene
 
-        # ==============================================
         # Time Window - Accumulated / Average Values & Counts
-        # ==============================================  
         
         (visible_past_dots, 
         visible_past_distances, 
@@ -455,16 +352,7 @@ def run_experiment(parameters):
             visible_high_dot_counts, visible_low_distance_counts, visible_time_to_approach,
         )
         filtered_obj_ids = _fo.filtered_obj_ids
-        filtered_obj_names = _fo.filtered_obj_names
         filtered_obj_positions_scene = _fo.filtered_obj_positions_scene
-        filtered_dot_products = _fo.filtered_dot_products
-        filtered_distances = _fo.filtered_distances
-        filtered_high_dot_counts = _fo.filtered_high_dot_counts
-        filtered_low_distance_counts = _fo.filtered_low_distance_counts
-        filtered_names_high_dot_counts = _fo.filtered_names_high_dot_counts
-        filtered_names_low_distance_counts = _fo.filtered_names_low_distance_counts
-        filtered_names_time_to_approach = _fo.filtered_names_time_to_approach
-        filtered_names_duration = _fo.filtered_names_duration
         
         # ============================================== LLM activation criteria (activation.py)
         _crit, all_unique_object_names_with_high_dot = evaluate_activation_criteria(
@@ -473,19 +361,8 @@ def run_experiment(parameters):
             gt_object_names, gt_start_times, gt_end_times,
             current_time_s, all_unique_object_names_with_high_dot,
         )
-        high_dot_counts_but_also_distance = _crit.high_dot_counts_but_also_distance
-        low_distance_counts_but_also_high_dot = _crit.low_distance_counts_but_also_high_dot
-        less_than_2_seconds_dict = _crit.less_than_2_seconds_dict
-        filtered_names_high_dot_counts_and_distance_counts = _crit.names_high_dot_counts_and_distance_counts
-        filtered_names_low_distance_counts_and_high_dot_counts = _crit.names_low_distance_counts_and_high_dot_counts
-        filtered_names_high_dot_counts_and_distance_values = _crit.names_high_dot_counts_and_distance_values
-        filtered_names_low_distance_counts_and_high_dot_values = _crit.names_low_distance_counts_and_high_dot_values
-        time_to_approach_dict = _crit.time_to_approach_dict
-        high_dot_history = _crit.high_dot_history
     
-        # ==============================================
         # LLM Query and Activation
-        # ==============================================  
         
         """
         TODO: THIS IS THE NEW ONE
@@ -554,9 +431,7 @@ def run_experiment(parameters):
                 except Exception:
                     pass
         
-        # ==============================================
         # Log Only Predicted Objects in rerun.io
-        # ==============================================
 
         # Clear previously logged objects and lines
         if args.runrr:
@@ -593,9 +468,7 @@ def run_experiment(parameters):
                     previous_obj_names.add(instance_info.name)
                     previous_obj_ids.add(obj_id)
                     
-        # ==============================================
         # Objects Inside the radius & LLM activation conditions
-        # ==============================================  
         
         activation.llm_activated, activation.last_activation_time, user_relative_total_movement = check_reactivation(
             activation.llm_activated, activation.last_activation_time, user_relative_total_movement,
@@ -607,9 +480,7 @@ def run_experiment(parameters):
         recorder.write(frame_np)
 
 
-    # ==============================================
     # Store the predictions of the LLM
-    # ==============================================  
     
     # Define the path for saving the predictions. Outputs go under
     # <repo>/results/predictions/<seq_name>/ — data/ stays dataset-only and
@@ -625,9 +496,7 @@ def run_experiment(parameters):
 
     main_logger.info("Saved predictions to %s", prediction_file)
 
-# ==============================================
 # Run all parameter combinations (one experiment each)
-# ==============================================
 if __name__ == "__main__":
     start_time = time.time()
     for parameters in build_param_combinations():
