@@ -104,15 +104,19 @@ class Statistics:
         # VELOCITY 
         velocity_xyz = T_Scene_Device.rotation().to_matrix() @ user_velocity_device
         
-        # DISTANCE              
+        # DISTANCE
         displacement_vector_xyz = object_position_scene - user_position_scene
         distance_xyz = np.linalg.norm(displacement_vector_xyz)
-        displacement_unit_vector_xyz = displacement_vector_xyz / np.linalg.norm(displacement_vector_xyz)
+        # guard: user already at the object -> no meaningful direction
+        if distance_xyz <= 1e-9:
+            return float('inf'), float('inf')
+        displacement_unit_vector_xyz = displacement_vector_xyz / distance_xyz
 
         # PROJECTED VELOCITY
-        projected_velocity_xyz = np.dot(velocity_xyz, displacement_unit_vector_xyz) * displacement_unit_vector_xyz 
+        projected_velocity_xyz = np.dot(velocity_xyz, displacement_unit_vector_xyz) * displacement_unit_vector_xyz
         speed_xyz = np.linalg.norm(projected_velocity_xyz)
-        time_xyz = distance_xyz / speed_xyz
+        # guard: near-stationary user -> effectively unreachable (was inf/NaN)
+        time_xyz = distance_xyz / speed_xyz if speed_xyz > 1e-6 else float('inf')
         
         # ==============================================
         # PLANAR MOTION ON XZ PLANE
@@ -126,10 +130,10 @@ class Statistics:
         # VELOCITY 
         velocity_xz = np.array([velocity_xyz[0], 0, velocity_xyz[2]])
     
-        # PROJECTED VELOCITY  
-        projected_velocity_xz= np.dot(velocity_xz, displacement_unit_vector_xz) * displacement_unit_vector_xz 
+        # PROJECTED VELOCITY
+        projected_velocity_xz= np.dot(velocity_xz, displacement_unit_vector_xz) * displacement_unit_vector_xz
         speed_xz= np.linalg.norm(projected_velocity_xz)
-        time_xz = distance_xz / speed_xz
+        time_xz = distance_xz / speed_xz if speed_xz > 1e-6 else float('inf')
     
         return time_xyz, time_xz
 

@@ -118,11 +118,20 @@ class LoadedSequence:
     aria_pose_end_timestamp: int
     device_calibration: object
     aria_glasses_point_outline: object
+    scene: str
 
 
 def load_sequence(args):
     """Open the ADT provider and load calibration + RGB timestamps for a sequence."""
     dataset_folder = args.sequence_path
+    # Scene name (e.g. "Apartment") for the LLM spatial context — read from the
+    # sequence metadata instead of hardcoding a location.
+    scene = "Unknown"
+    try:
+        with open(os.path.join(dataset_folder, "metadata.json")) as _mf:
+            scene = json.load(_mf).get("scene", "Unknown")
+    except Exception:
+        pass
     try:
         paths_provider = AriaDigitalTwinDataPathsProvider(dataset_folder)
         data_paths = paths_provider.get_datapaths_by_device_num(args.device_number)
@@ -156,6 +165,7 @@ def load_sequence(args):
         gt_provider, rgb_stream_id, rgb_camera_calibration, T_Device_Cam,
         img_timestamps_ns, start_time, aria_pose_start_timestamp,
         aria_pose_end_timestamp, device_calibration, aria_glasses_point_outline,
+        scene,
     )
 
 def run_experiment(parameters):
@@ -206,7 +216,8 @@ def run_experiment(parameters):
     img_timestamps_ns = _seq.img_timestamps_ns
     start_time = _seq.start_time
     aria_pose_start_timestamp = _seq.aria_pose_start_timestamp
-    
+    scene = _seq.scene
+
     # Initialization
 
     # Intialize variable for visualizations part 
@@ -391,11 +402,10 @@ def run_experiment(parameters):
         Objects meeting the distance and time thresholds but showing partial dot counts, or objects meeting the dot and time thresholds with partial distance counts, are the next most likely.
         Objects that do not meet the time threshold but satisfy both the dot and distance thresholds (since proximity typically suggests a reduced time to approach) are considered probable.
         Objects that fail to meet the time threshold but satisfy either the dot or distance thresholds (though not both) are considered less likely but still possibl
-       
         """
 
         # ============================================== LLM activation step (llm_step.py)
-        predicted_objects = query_and_log_llm(activation, _crit, args, parameters, llama, current_time_s, project_path)
+        predicted_objects = query_and_log_llm(activation, _crit, args, parameters, llama, current_time_s, project_path, scene)
         if predicted_objects is not None:
             user_relative_total_movement = 0
 

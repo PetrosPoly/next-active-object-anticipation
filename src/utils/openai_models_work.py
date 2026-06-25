@@ -130,8 +130,10 @@ def activate_llm(log_content, parameters, max_retries = 5):
     _log.debug('Message to LLM: %s', message_to_LLM)
     
     response = get_client().chat.completions.create(
-    model= models[0],  # Use GPT-4o mini model
-    messages= message_to_LLM
+        model=models[0],          # GPT-4o-mini
+        messages=message_to_LLM,
+        temperature=0,            # deterministic / reproducible predictions
+        seed=0,
     )
 
     # LLM reply

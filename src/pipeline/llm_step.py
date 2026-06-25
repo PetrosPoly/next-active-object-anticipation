@@ -13,7 +13,7 @@ from utils.llama import activate_llama
 _log = logging.getLogger(__name__)
 
 
-def query_and_log_llm(state, criteria, args, parameters, llama, current_time_s, project_path):
+def query_and_log_llm(state, criteria, args, parameters, llama, current_time_s, project_path, scene="Unknown"):
     """Run one LLM activation if the criteria/flags allow it.
 
     Mutates ``state`` (an ActivationState): sets llm_activated/last_activation_time
@@ -36,7 +36,7 @@ def query_and_log_llm(state, criteria, args, parameters, llama, current_time_s, 
 
     history_log = append_to_history_string(
         current_time_s,
-        "Living Room",
+        scene,
         criteria.names_high_dot_counts_and_distance_counts,
         criteria.names_low_distance_counts_and_high_dot_counts,
         criteria.names_high_dot_counts_and_distance_values,
