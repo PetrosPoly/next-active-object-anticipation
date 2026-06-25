@@ -58,6 +58,7 @@ class ActivationState:
     def __init__(self):
         self.llm_activated = False
         self.last_activation_time = 0
+        self.candidate_scores = {}   # per-object EMA-smoothed activation score (#6)
 
         # keyed by timestamp (serialized at the end of the run)
         self.possibility_dict = {}

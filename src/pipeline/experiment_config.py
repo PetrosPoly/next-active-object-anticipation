@@ -24,6 +24,11 @@ MAX_TIME_DEACTIVATED = [5.0]        # force a re-query after this (s)
 USER_RELATIVE_MOVEMENT = [2.0]      # user movement (m) that triggers a re-query
 OBJECT_PERCENTAGE_OVERLAP = [0.7]   # overlap of surrounding objects = same area
 
+# --- Activation gate (#4 soft gate, #6 temporal smoothing) ---
+ACTIVATION_MODE = "soft"            # "soft" (weighted score) or "strict" (original AND-of-3)
+SOFT_ACTIVATION_THRESHOLD = 0.6     # activate when the best candidate score >= this
+SOFT_SCORE_EMA_ALPHA = 0.5          # temporal smoothing of the score; 1.0 = no smoothing
+
 
 def build_param_combinations():
     """Expand the grid into a list of parameter dicts (one per experiment)."""
@@ -43,6 +48,9 @@ def build_param_combinations():
             "maximum_time_deactivated": maxtd,
             "user_relative_movement": urm,
             "object_percentage_overlap": obo,
+            "activation_mode": ACTIVATION_MODE,
+            "soft_activation_threshold": SOFT_ACTIVATION_THRESHOLD,
+            "soft_score_ema_alpha": SOFT_SCORE_EMA_ALPHA,
         }
         for t, adh, adl, adhg, adlg, hdt, dt, hdct, dct, w, mintd, maxtd, urm, obo in product(
             TIME_THRESHOLDS, AVG_DOT_HIGH, AVG_DOT_LOW,

@@ -141,6 +141,10 @@ Outputs are written per parameter combination as
 - **Activation thresholds** — gaze/proximity consistency, time-to-approach, sliding-window
   length and LLM re-activation timing are defined in `src/pipeline/experiment_config.py`
   (and documented for reference in `configs/default.yaml`).
+- **Activation gate** — `ACTIVATION_MODE` in `experiment_config.py` selects `"soft"`
+  (default: a weighted, temporally-smoothed score over focus/proximity/time-to-approach,
+  tuned by `SOFT_ACTIVATION_THRESHOLD` / `SOFT_SCORE_EMA_ALPHA`) or `"strict"` (the
+  original AND-of-3-criteria). Compare the two with `evaluation/select_best.py`.
 - **LLM prompts** — the prompt template lives in `src/utils/txt_files/prompts.txt`.
 
 ## Repository structure

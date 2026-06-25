@@ -69,6 +69,41 @@ def evaluate_activation_criteria(filtered, parameters, statistics, gt_provider,
     return c, seen_high_dot
 
 
+def soft_activation(criteria, parameters, prev_scores):
+    """Weighted, temporally-smoothed activation gate (#4 + #6).
+
+    For each candidate object (one with both consistent focus and proximity
+    counts), combine normalized focus, proximity and time-to-approach into a
+    [0,1] score, EMA-smooth it across frames, and open the gate when the best
+    candidate that also has focus history exceeds the threshold.
+
+    Returns (gate_open: bool, updated_scores: dict).
+    """
+    focus = criteria.names_high_dot_counts_and_distance_counts        # {name: focus count}
+    prox = criteria.names_low_distance_counts_and_high_dot_counts     # {name: proximity count}
+    times = criteria.time_to_approach_dict                           # {name: seconds}
+    history = set(criteria.high_dot_history)
+
+    focus_cap = max(1, parameters["high_dot_counters_threshold"])
+    prox_cap = max(1, parameters["distance_counters_threshold"])
+    time_thr = parameters["time_threshold"]
+    alpha = parameters.get("soft_score_ema_alpha", 1.0)
+    threshold = parameters.get("soft_activation_threshold", 0.6)
+
+    new_scores, best = {}, 0.0
+    for name in focus:
+        f = min(1.0, focus.get(name, 0) / focus_cap)
+        p = min(1.0, prox.get(name, 0) / prox_cap)
+        t = times.get(name, float("inf"))
+        t_norm = max(0.0, min(1.0, time_thr / t)) if t and t > 0 else 0.0
+        raw = (f + p + t_norm) / 3.0
+        ema = alpha * raw + (1 - alpha) * prev_scores.get(name, raw)
+        new_scores[name] = ema
+        if name in history and ema > best:
+            best = ema
+    return best >= threshold, new_scores
+
+
 def check_reactivation(llm_activated, last_activation_time, user_relative_total_movement,
                        group_analyzer, visible_distance_device_objects_scene, visible_obj_names,
                        current_time_s, parameters):
