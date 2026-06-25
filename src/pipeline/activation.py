@@ -98,8 +98,16 @@ def soft_activation(criteria, parameters, prev_scores):
         t_norm = max(0.0, min(1.0, time_thr / t)) if t and t > 0 else 0.0
         raw = (f + p + t_norm) / 3.0
         ema = alpha * raw + (1 - alpha) * prev_scores.get(name, raw)
-        new_scores[name] = ema
-        if name in history and ema > best:
+        new_scores[name] = ema  # keep EMA continuity for every candidate (#6)
+
+        # A candidate may OPEN the gate only if the user is genuinely near it
+        # AND approaching it — sustained proximity + imminence are hard
+        # prerequisites (the soft score only ranks among such objects). This
+        # prevents activating on a far object that merely gets looked at a lot.
+        eligible = (name in history
+                    and prox.get(name, 0) >= prox_cap        # sustained proximity
+                    and t <= time_thr)                       # imminent (approaching)
+        if eligible and ema > best:
             best = ema
     return best >= threshold, new_scores
 
