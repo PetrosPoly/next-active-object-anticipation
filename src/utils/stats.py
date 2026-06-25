@@ -3,7 +3,6 @@ import numpy as np
 from collections import deque
 from typing import List, Dict, Tuple
 
-import math
  
 class Statistics:
     def __init__(self, window_time, high_dot_threshold, distance_threshold, low_distance_threshold, time_threshold):

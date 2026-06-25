@@ -1,5 +1,5 @@
 # Import necessary libraries 
-from openai import OpenAI, OpenAIError, APIStatusError, AsyncOpenAI, RateLimitError
+from openai import OpenAI
 import tiktoken
 import logging
 import os
@@ -83,7 +83,6 @@ def append_to_history_string(time,
     return log_entry
 
 def activate_llm(log_content, parameters, max_retries = 5):
-    delay = 1  # Initial delay in seconds
 
     # Ensure log_content is a string
     if not isinstance(log_content, str):
