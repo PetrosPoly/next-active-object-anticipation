@@ -7,7 +7,7 @@
 <p align="center">
   <img src="docs/demo.gif" width="340" alt="Egocentric gaze and object tracking demo"/>
   <br/>
-  <em>Egocentric view from the Aria glasses: 2D object detections (yellow), the eye-gaze point (red), and the object currently in focus (green) — the signals the pipeline turns into a next-object prediction.</em>
+  <em>Egocentric view from the Aria glasses (shown for visualization only — the RGB pixels are not used for prediction): 2D object boxes (yellow), the eye-gaze point (red), and the object currently in focus (green). The pipeline predicts from gaze + object geometry, not from the image.</em>
 </p>
 
 ▶ **[Watch the algorithm explainer video](docs/algorithm_demo.mp4)** — the egocentric stream with the live LLM top-3 prediction, inferred goal, and the ground-truth object the user actually reaches for.
@@ -17,6 +17,14 @@
 ## Motivation
 
 Wearable AR devices and assistive robots need to understand human intent *before* an action happens. Knowing **which object a user will reach for next** enables proactive assistance (highlighting tools, pre-fetching information, anticipating a grasp). This project anticipates the *next active object* from purely egocentric signals — where the user looks, where they move, and how close objects are — and reasons about the user's goal with a large language model.
+
+## Inputs & privacy
+
+The prediction uses **only** the eye-gaze direction, the device trajectory, and object
+**positions/names** (from the ADT ground truth) — **never the RGB camera pixels**. The
+camera image is used **only** for the optional visualization / explainer video; no image
+content is ever fed to the model. This makes the approach **privacy-preserving by design**:
+the anticipation runs on gaze + geometry alone.
 
 ## What it does
 

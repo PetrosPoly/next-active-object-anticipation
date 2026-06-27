@@ -8,7 +8,7 @@ predictions, then scores those predictions against ground truth.
 ```mermaid
 flowchart TD
     subgraph IN[Inputs]
-        VRS[video.vrs<br/>RGB + device poses]
+        VRS[video.vrs<br/>device poses + eye-gaze<br/>RGB used for visualization only]
         GT[ADT ground truth<br/>object 3D boxes, trajectory]
     end
 
@@ -63,10 +63,11 @@ flowchart TD
 ## Stage details
 
 ### 1. Perception / geometry
-For every RGB frame the device pose is read and converted from the device frame to
-the scene frame; the user position and velocity are smoothed with an exponential
-moving average (alpha = 0.9). For each object visible in the camera frame the system
-computes:
+At every RGB frame timestamp the device pose is read and converted from the device frame
+to the scene frame (the RGB pixels themselves are not used for prediction — only the
+camera **pose** and eye-gaze; see *Inputs & privacy* in the README). The user position
+and velocity are smoothed with an exponential moving average (alpha = 0.9). For each
+object visible in the camera frame the system computes:
 
 - **Gaze–object dot product** — the camera's Z-axis (viewing direction) vs. the unit
   vector from the camera to the object, both projected onto the **XZ plane** (the
